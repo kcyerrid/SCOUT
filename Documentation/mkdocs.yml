@@ -1,0 +1,70 @@
+site_name: SCOUT - Security Cyber Operations Unified Tracker
+site_url: https://www.github.com/kcyerrid/SCOUT
+theme: 
+  name: material
+  features:
+    - navigation.tabs
+    - navigation.sections
+    - toc.integrate
+    - navigation.top
+    - navigation.instant
+    - search.suggest
+    - search.highlight
+    - content.tabs.link
+    - content.code.annotation
+    - content.code.copy
+  language: en
+  palette:
+    - scheme: default
+      toggle:
+        icon: material/toggle-switch-off-outline 
+        name: Switch to dark mode
+      primary: brown
+      accent: amber 
+    - scheme: slate 
+      toggle:
+        icon: material/toggle-switch
+        name: Switch to light mode    
+      primary: teal
+      accent: lime
+
+nav: 
+  - Home: index.md
+  - Installation Guide:
+    - Installing Obsidian: installation/install-obsidian.md
+    - Cloning the SCOUT Repo: installation/install-clone-repo.md
+    - Installing Dependencies: installation/install-dependencies.md
+  - Using SCOUT:
+    - SCOUT Interface: userguide/scout-interface.md
+    - customization/customize.md
+
+plugins:
+  - social
+  - search
+
+extra:
+  social:
+    - icon: fontawesome/brands/github-alt
+      link: https://github.com/kcyerrid    
+    - icon: fontawesome/brands/linkedin
+      link: https://www.linkedin.com/in/kcyerrid/
+
+markdown_extensions:
+  - pymdownx.highlight:
+      anchor_linenums: true
+  - pymdownx.inlinehilite
+  - pymdownx.snippets
+  - admonition
+  - pymdownx.arithmatex:
+      generic: true
+  - footnotes
+  - pymdownx.details
+  - pymdownx.superfences
+  - pymdownx.mark
+  - attr_list
+  - pymdownx.emoji:
+      emoji_index: !!python/name:materialx.emoji.twemoji
+      emoji_generator: !!python/name:materialx.emoji.to_svg
+
+copyright: |
+  &copy; 2026 <a href="https://github.com/kcyerrid"  target="_blank" rel="noopener">K.C. Yerrid</a>
