@@ -33,6 +33,7 @@ nav:
   - Installation Guide:
     - Installing Obsidian: installation/install-obsidian.md
     - Cloning the SCOUT Repo: installation/install-clone-repo.md
+    - Creating the SCOUT Vault: installation/create-obsidian-vault.md
     - Installing Obsidian Plug-ins: installation/install-plug-ins.md
     - Installing Python Dependencies: installation/install-python-dependencies.md
     - Importing SCOUT Base Folders: installation/install-base-scout-folders.md    
