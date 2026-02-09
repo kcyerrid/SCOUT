@@ -1,5 +1,5 @@
 site_name: SCOUT - Security Cyber Operations Unified Tracker
-site_url: https://www.github.com/kcyerrid/SCOUT
+site_url: https://kcyerrid.github.io/SCOUT
 theme: 
   name: material
   features:
