@@ -33,10 +33,21 @@ nav:
   - Installation Guide:
     - Installing Obsidian: installation/install-obsidian.md
     - Cloning the SCOUT Repo: installation/install-clone-repo.md
-    - Installing Dependencies: installation/install-dependencies.md
-  - Using SCOUT:
-    - SCOUT Interface: userguide/scout-interface.md
-    - customization/customize.md
+    - Installing Obsidian Plug-ins: installation/install-plug-ins.md
+    - Installing Python Dependencies: installation/install-python-dependencies.md
+    - Importing SCOUT Base Folders: installation/install-base-scout-folders.md    
+  - Using SCOUT: 
+    - The SCOUT Interface: userguide/scout-interface.md
+    - The SCOUT Launcher: userguide/scout-launcher.md
+    - SCOUT Workflows:
+      - New Daily Note: userguide/new-daily-note.md
+      - New Incident / Investigation: userguide/new-incident.md
+      - New Meeting: userguide/new-meeting.md
+      - New Playbook: userguide/new-playbook.md
+      - New Procedure: userguide/new-procedure.md
+      - New ITID: userguide/new-itid.md
+      - New Service Level Agreement (SLA): userguide/new-SLA.md
+
 
 plugins:
   - social

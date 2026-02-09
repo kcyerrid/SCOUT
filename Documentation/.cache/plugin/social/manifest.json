@@ -2,7 +2,12 @@
   "assets/images/social/customization/customize.png": "d273833f3d03af12f2931fb35ff3e16501aa3370",
   "assets/images/social/customization/interface_config.png": "703ad59ef218841943e34d2e3d45f80f75b5bb24",
   "assets/images/social/index.png": "c33e41884b6c14275097c8add4b9307d3a0ffd87",
+  "assets/images/social/installation/install-base-scout-folders.png": "b9dee1765798159eb8a5766c63b94710da32803c",
   "assets/images/social/installation/install-clone-repo.png": "34f45e9b4e1a41b7979364f259c67fe8ef50b8e6",
   "assets/images/social/installation/install-obsidian.png": "e1fc8b28e35c09e389167cccaddf50476db9a2d8",
-  "assets/images/social/installation/installation.png": "814a845c239c16b652dad77847a4f4f26584b52c"
+  "assets/images/social/installation/install-plug-ins.png": "6e67a827ee88f6e2dd08d234d734ad5b31654771",
+  "assets/images/social/installation/install-python-dependencies.png": "55dc2c9842acf6c87e95315715c27f27690879dc",
+  "assets/images/social/installation/installation.png": "814a845c239c16b652dad77847a4f4f26584b52c",
+  "assets/images/social/userguide/index.png": "c61fda85929f36ae4c9a08c471e77d915694d408",
+  "assets/images/social/userguide/scout-interface.png": "4c8de697819f5ef5dd1b0cb0a265fda6740e5f1b"
 }
