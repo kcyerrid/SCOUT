@@ -29,6 +29,10 @@ except Exception:
     DND_FILES = None
     DND_TEXT = None
     TkinterDnD = None
+try:
+    from tkcalendar import DateEntry  # type: ignore
+except ImportError:
+    DateEntry = None
 
 BaseTk = TkinterDnD.Tk if (TkinterDnD and hasattr(TkinterDnD, "Tk")) else tk.Tk
 
@@ -11423,7 +11427,7 @@ class IncidentIntakeWindow(tk.Toplevel):
         self.vault_root = vault_root
         self.on_submit = on_submit
 
-        self.title(f"{title} — v3")
+        self.title("New Incident Intake")
         self.configure(bg="#111111")
         self.geometry("980x720")
         self.minsize(860, 640)
@@ -11535,7 +11539,7 @@ class IncidentIntakeWindow(tk.Toplevel):
 
         tk.Label(
             top,
-            text="Incident Intake (v3)",
+            text="New Incident Intake",
             font=("Segoe UI", 16, "bold"),
             fg="#FFFFFF",
             bg="#111111",
@@ -11651,40 +11655,9 @@ class IncidentIntakeWindow(tk.Toplevel):
         self._btns = tk.Frame(self, bg="#111111")
         self._btns.pack(fill="x", padx=16, pady=(6, 14))
 
-        tk.Label(
-            self._btns,
-            text="Draft controls enabled (v3)",
-            font=("Segoe UI", 9),
-            fg="#BBBBBB",
-            bg="#111111",
-        ).pack(side="left", padx=(0, 12))
-
-        # Obsidian options
+        # Obsidian options (hidden, both always enabled)
         self.create_stub_var = tk.BooleanVar(value=True)
         self.open_note_var = tk.BooleanVar(value=True)
-
-        if self.vault_root is not None:
-            tk.Checkbutton(
-                self._btns,
-                text="Create Obsidian staging note",
-                variable=self.create_stub_var,
-                bg="#111111",
-                fg="#DDDDDD",
-                selectcolor="#111111",
-                activebackground="#111111",
-                activeforeground="#DDDDDD",
-            ).pack(side="left")
-
-            tk.Checkbutton(
-                self._btns,
-                text="Open note automatically",
-                variable=self.open_note_var,
-                bg="#111111",
-                fg="#DDDDDD",
-                selectcolor="#111111",
-                activebackground="#111111",
-                activeforeground="#DDDDDD",
-            ).pack(side="left", padx=(12, 0))
 
         # Right-aligned actions (always visible)
         tk.Button(
@@ -11708,28 +11681,6 @@ class IncidentIntakeWindow(tk.Toplevel):
             padx=14,
             pady=8,
         ).pack(side="right", padx=(8, 0))
-
-        tk.Button(
-            self._btns,
-            text="Save Draft",
-            command=self._save_draft,
-            bg="#2F2F2F",
-            fg="#FFFFFF",
-            relief="flat",
-            padx=14,
-            pady=8,
-        ).pack(side="right", padx=(8, 0))
-
-        tk.Button(
-            self._btns,
-            text="Clear Draft",
-            command=self._clear_draft,
-            bg="#2F2F2F",
-            fg="#FFFFFF",
-            relief="flat",
-            padx=14,
-            pady=8,
-        ).pack(side="right")
 
         # Initialize scroll region
         self._on_canvas_configure()
@@ -12471,6 +12422,35 @@ updated: "{now}"
     return note_path
 
 
+def _parse_datetime_for_picker(value: str) -> tuple[date, int, int, int]:
+    """Parse 'YYYY-MM-DD HH:MM:SS' or 'YYYY-MM-DD' into (date, hour, minute, second)."""
+    value = (value or "").strip()
+    now = datetime.now()
+    default_date = now.date()
+    default_h, default_m, default_s = now.hour, now.minute, now.second
+    if not value:
+        return default_date, default_h, default_m, default_s
+    parts = value.split()
+    try:
+        d = datetime.strptime(parts[0], "%Y-%m-%d").date()
+    except (ValueError, IndexError):
+        d = default_date
+    h, m, s = default_h, default_m, default_s
+    if len(parts) >= 2:
+        tparts = parts[1].split(":")
+        if len(tparts) >= 1 and tparts[0].isdigit():
+            h = min(23, max(0, int(tparts[0])))
+        if len(tparts) >= 2 and tparts[1].isdigit():
+            m = min(59, max(0, int(tparts[1])))
+        if len(tparts) >= 3 and tparts[2].isdigit():
+            s = min(59, max(0, int(tparts[2])))
+    return d, h, m, s
+
+
+def _format_datetime_from_picker(d: date, h: int, m: int, s: int) -> str:
+    return f"{d.isoformat()} {h:02d}:{m:02d}:{s:02d}"
+
+
 class MeetingIntakeWindow(tk.Toplevel):
     def __init__(self, master, *, app_dir: Path, vault_root: Path | None, on_submit, resume: bool = False):
         super().__init__(master)
@@ -12542,6 +12522,7 @@ class MeetingIntakeWindow(tk.Toplevel):
             "attendees": tk.StringVar(),
             "tags": tk.StringVar(),
         }
+        self._dt_pickers: dict[str, dict] = {}
 
         def add_entry(parent, label, var):
             row = tk.Frame(parent, bg="#111111")
@@ -12560,9 +12541,63 @@ class MeetingIntakeWindow(tk.Toplevel):
             cb.pack(fill="x", ipady=3)
             return cb
 
+        def add_datetime_picker(parent, label: str, key: str, initial_value: str):
+            row = tk.Frame(parent, bg="#111111")
+            row.pack(fill="x", pady=6)
+            tk.Label(row, text=label, fg="#DDDDDD", bg="#111111", font=("Segoe UI", 10)).pack(anchor="w")
+            picker_row = tk.Frame(row, bg="#111111")
+            picker_row.pack(fill="x")
+            d, h, m, s = _parse_datetime_for_picker(initial_value)
+            ent = None
+            if DateEntry is not None:
+                try:
+                    style = ttk.Style(self)
+                    style.configure(
+                        "Meeting.DateEntry",
+                        fieldbackground="#1B1B1B",
+                        background="#2A2A2A",
+                        foreground="#FFFFFF",
+                        arrowcolor="#FFFFFF",
+                    )
+                    date_entry = DateEntry(
+                        picker_row, date_pattern="y-mm-dd", year=d.year, month=d.month, day=d.day,
+                        style="Meeting.DateEntry",
+                    )
+                except Exception:
+                    date_entry = DateEntry(
+                        picker_row, date_pattern="y-mm-dd", year=d.year, month=d.month, day=d.day,
+                    )
+                date_entry.pack(side="left", padx=(0, 8))
+            else:
+                date_entry = None
+                ent = tk.Entry(picker_row, bg="#1B1B1B", fg="#FFFFFF", relief="flat", width=12)
+                ent.insert(0, d.isoformat())
+                ent.pack(side="left", padx=(0, 8))
+            hour_var = tk.StringVar(value=str(h))
+            min_var = tk.StringVar(value=str(m))
+            sec_var = tk.StringVar(value=str(s))
+            for var, (lo, hi, w) in [
+                (hour_var, (0, 23, 3)),
+                (min_var, (0, 59, 3)),
+                (sec_var, (0, 59, 3)),
+            ]:
+                sp = tk.Spinbox(
+                    picker_row, from_=lo, to=hi, textvariable=var, width=w,
+                    bg="#1B1B1B", fg="#FFFFFF", insertbackground="#FFFFFF", relief="flat",
+                    buttonbackground="#1B1B1B",
+                )
+                sp.pack(side="left", padx=(0, 4))
+            self._dt_pickers[key] = {
+                "date_entry": date_entry,
+                "fallback_entry": ent if DateEntry is None else None,
+                "hour_var": hour_var,
+                "min_var": min_var,
+                "sec_var": sec_var,
+            }
+
         add_entry(left, "Title", self.vars["title"])
-        add_entry(left, "Start Time (YYYY-MM-DD HH:MM:SS)", self.vars["start_time"])
-        add_entry(left, "End Time (optional)", self.vars["end_time"])
+        add_datetime_picker(left, "Meeting Start Date", "start_time", self.vars["start_time"].get())
+        add_datetime_picker(left, "Meeting End Date", "end_time", self.vars["end_time"].get())
         add_entry(right, "Location", self.vars["location"])
         add_entry(right, "Attendees (comma-separated)", self.vars["attendees"])
         add_entry(right, "Tags (comma-separated)", self.vars["tags"])
@@ -12601,6 +12636,9 @@ class MeetingIntakeWindow(tk.Toplevel):
         for k, v in draft.items():
             if k in self.vars and isinstance(v, str):
                 self.vars[k].set(v)
+        for key in ("start_time", "end_time"):
+            if key in draft and key in self._dt_pickers:
+                self._set_picker_datetime(key, str(draft[key]))
         if "agenda" in draft:
             self.agenda_txt.delete("1.0", "end")
             self.agenda_txt.insert("1.0", draft.get("agenda", ""))
@@ -12608,8 +12646,44 @@ class MeetingIntakeWindow(tk.Toplevel):
             self.notes_txt.delete("1.0", "end")
             self.notes_txt.insert("1.0", draft.get("notes", ""))
 
+    def _get_picker_datetime(self, key: str) -> str:
+        p = self._dt_pickers.get(key)
+        if not p:
+            return self.vars[key].get().strip()
+        try:
+            if p["date_entry"] is not None:
+                d = p["date_entry"].get_date()
+            elif p.get("fallback_entry"):
+                d = datetime.strptime(p["fallback_entry"].get().strip(), "%Y-%m-%d").date()
+            else:
+                return self.vars[key].get().strip()
+            h = min(23, max(0, int(p["hour_var"].get() or 0)))
+            m = min(59, max(0, int(p["min_var"].get() or 0)))
+            s = min(59, max(0, int(p["sec_var"].get() or 0)))
+            return _format_datetime_from_picker(d, h, m, s)
+        except (ValueError, TypeError):
+            return self.vars[key].get().strip()
+
+    def _set_picker_datetime(self, key: str, value: str) -> None:
+        p = self._dt_pickers.get(key)
+        if not p:
+            self.vars[key].set(value)
+            return
+        d, h, m, s = _parse_datetime_for_picker(value)
+        if p["date_entry"] is not None:
+            p["date_entry"].set_date(d)
+        elif p.get("fallback_entry"):
+            p["fallback_entry"].delete(0, "end")
+            p["fallback_entry"].insert(0, d.isoformat())
+        p["hour_var"].set(str(h))
+        p["min_var"].set(str(m))
+        p["sec_var"].set(str(s))
+
     def _collect(self) -> dict:
         data = {k: v.get().strip() for k, v in self.vars.items()}
+        for key in ("start_time", "end_time"):
+            if key in self._dt_pickers:
+                data[key] = self._get_picker_datetime(key)
         data["agenda"] = self.agenda_txt.get("1.0", "end").strip()
         data["notes"] = self.notes_txt.get("1.0", "end").strip()
         return data

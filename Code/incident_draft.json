@@ -1,0 +1,17 @@
+{
+  "incident_id": "INC-2026-000001",
+  "title": "Test",
+  "status": "new",
+  "severity": "low",
+  "tlp": "TLP:GREEN",
+  "discovered": "2026-02-14 21:33:03",
+  "created": "2026-02-14 21:33:03",
+  "source": "ticket",
+  "reporter": "YOUR NAME",
+  "tags": "",
+  "affected_assets": "",
+  "itid_primary": "",
+  "sequential_mode": true,
+  "summary": "Test",
+  "notes": ""
+}

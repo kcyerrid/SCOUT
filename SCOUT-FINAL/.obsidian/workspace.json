@@ -13,12 +13,12 @@
             "state": {
               "type": "markdown",
               "state": {
-                "file": "10_Operations/09_Journals/01_Daily/2026/02/2026-02-14.md",
+                "file": "10_Operations/04_Incidents/INC-2026-000001 - Test/INC-2026-000001 - Test.md",
                 "mode": "source",
                 "source": false
               },
               "icon": "lucide-file",
-              "title": "2026-02-14"
+              "title": "INC-2026-000001 - Test"
             }
           }
         ]
@@ -111,7 +111,7 @@
             "state": {
               "type": "backlink",
               "state": {
-                "file": "10_Operations/09_Journals/01_Daily/2026/02/2026-02-14.md",
+                "file": "10_Operations/04_Incidents/INC-2026-000001 - Test/INC-2026-000001 - Test.md",
                 "collapseAll": false,
                 "extraContext": false,
                 "sortOrder": "alphabetical",
@@ -121,7 +121,7 @@
                 "unlinkedCollapsed": true
               },
               "icon": "links-coming-in",
-              "title": "Backlinks for 2026-02-14"
+              "title": "Backlinks for INC-2026-000001 - Test"
             }
           },
           {
@@ -130,12 +130,12 @@
             "state": {
               "type": "outgoing-link",
               "state": {
-                "file": "10_Operations/09_Journals/01_Daily/2026/02/2026-02-14.md",
+                "file": "10_Operations/04_Incidents/INC-2026-000001 - Test/INC-2026-000001 - Test.md",
                 "linksCollapsed": false,
                 "unlinkedCollapsed": true
               },
               "icon": "links-going-out",
-              "title": "Outgoing links from 2026-02-14"
+              "title": "Outgoing links from INC-2026-000001 - Test"
             }
           },
           {
@@ -173,13 +173,13 @@
             "state": {
               "type": "outline",
               "state": {
-                "file": "10_Operations/09_Journals/01_Daily/2026/02/2026-02-14.md",
+                "file": "10_Operations/04_Incidents/INC-2026-000001 - Test/INC-2026-000001 - Test.md",
                 "followCursor": false,
                 "showSearch": false,
                 "searchQuery": ""
               },
               "icon": "lucide-list",
-              "title": "Outline of 2026-02-14"
+              "title": "Outline of INC-2026-000001 - Test"
             }
           }
         ]
@@ -195,7 +195,7 @@
             "state": {
               "type": "localgraph",
               "state": {
-                "file": "10_Operations/09_Journals/01_Daily/2026/02/2026-02-14.md",
+                "file": "10_Operations/04_Incidents/INC-2026-000001 - Test/INC-2026-000001 - Test.md",
                 "options": {
                   "collapse-filter": true,
                   "search": "",
@@ -223,7 +223,7 @@
                 }
               },
               "icon": "lucide-git-fork",
-              "title": "Graph of 2026-02-14"
+              "title": "Graph of INC-2026-000001 - Test"
             }
           }
         ]
@@ -266,44 +266,47 @@
   },
   "active": "de556296420b337a",
   "lastOpenFiles": [
-    "99_Attachments/Picture_of_the_Day/2026-02-14 - clipboard.png",
-    "2026.md",
     "10_Operations/09_Journals/01_Daily/2026/02/2026-02-14.md",
+    "10_Operations/04_Incidents/INC-2026-000001 - Test/INC-2026-000001 - Test.md",
+    "10_Operations/04_Incidents/INC-2026-000001 - Test/Evidence",
+    "10_Operations/04_Incidents/INC-2026-000001 - Test",
+    "99_Attachments/Picture_of_the_Day/2026-02-14 - clipboard_1.png",
+    "99_Attachments/Picture_of_the_Day/bannon-epstein-take-down-pope-francis-latam-intl.png",
+    "10_Operations/04_Incidents/INC-2026-000002 - Test Incident 2/INC-2026-000002 - Test Incident 2.md",
+    "10_Operations/04_Incidents/INC-2026-000004 - Test incident/INC-2026-000004 - Test incident.md",
+    "10_Operations/09_Journals/05_Yearly/2026.md",
     "10_Operations/09_Journals/04_Quarterly/2026-Q1.md",
     "10_Operations/09_Journals/03_Monthly/2026-02.md",
     "10_Operations/09_Journals/02_Weekly/2026-W7.md",
+    "10_Operations/04_Incidents/INC-2026-000003 - Test/INC-2026-000003 - Test.md",
+    "10_Operations/04_Incidents/INC-2026-000004 - Test incident/Evidence",
+    "10_Operations/04_Incidents/INC-2026-000004 - Test incident",
+    "10_Operations/04_Incidents/INC-2026-000001 - Test Incident/INC-2026-000001 - Test Incident.md",
+    "10_Operations/09_Journals/01_Daily/2026/02",
+    "10_Operations/09_Journals/01_Daily/2026",
+    "10_Operations/04_Incidents/INC-2026-000003 - Test/Evidence",
+    "10_Operations/04_Incidents/INC-2026-000003 - Test",
+    "00_System/00_Templates/02_Operations/Chronos-Closure.md",
+    "00_System/00_Templates/02_Operations/Chronos-Recovery.md",
+    "00_System/00_Templates/02_Operations/Chronos-Eradication.md",
+    "00_System/00_Templates/02_Operations/Chronos-Containment.md",
+    "00_System/00_Templates/02_Operations/Chronos-Triage.md",
+    "00_System/00_Templates/02_Operations/Chronos-Detection.md",
+    "2026.md",
+    "10_Operations/09_Journals/02_Weekly/2026-W5.md",
+    "10_Operations/04_Incidents/INC-2026-000002 - Test Incident 2/Evidence",
+    "10_Operations/04_Incidents/INC-2026-000002 - Test Incident 2",
+    "99_Attachments/Picture_of_the_Day/2026-02-14 - clipboard.png",
     "10_Operations/04_Incidents/INC-2026-000001 - Vishing Attack Against 5 employees/INC-2026-000001 - Vishing Attack Against 5 employees.md",
     "10_Operations/04_Incidents/INC-2026-000002 - Test Chronos Timeline Insertion/INC-2026-000002 - Test Chronos Timeline Insertion.md",
-    "10_Operations/04_Incidents/INC-2026-000002 - Test Chronos Timeline Insertion/Timeline",
-    "10_Operations/04_Incidents/INC-2026-000002 - Test Chronos Timeline Insertion/Evidence",
-    "10_Operations/04_Incidents/INC-2026-000002 - Test Chronos Timeline Insertion",
     "00_System/00_Templates/02_Operations/Incident.md Template.md",
     "00_System/00_Templates/02_Operations/Timeline.md Template.md",
-    "10_Operations/04_Incidents/INC-2026-000001 - Vishing Attack Against 5 employees/Timeline",
-    "10_Operations/04_Incidents/INC-2026-000001 - Vishing Attack Against 5 employees/Evidence",
-    "10_Operations/04_Incidents/INC-2026-000001 - Vishing Attack Against 5 employees",
     "99_Attachments/SCOUT_Obsidian_Banner.png",
     "00_System/00_Templates/02_Operations/Log To Daily Shift Notes.md",
     "10_Operations/04_Incidents/INC-2026-000008 - Vishing attack against 5 employees/INC-2026-000008 - Vishing attack against 5 employees.md",
-    "10_Operations/04_Incidents/INC-2026-000008 - Vishing attack against 5 employees",
-    "10_Operations/04_Incidents/INC-2026-000008 - Vishing attack against 5 employees/Timeline",
-    "10_Operations/04_Incidents/INC-2026-000008 - Vishing attack against 5 employees/Evidence",
     "10_Operations/04_Incidents/1 - Test title/1 - Test title.md",
-    "10_Operations/04_Incidents/1 - Test title/Timeline",
     "99_Attachments/Picture_of_the_Day/pro-wrestling-politics-cec.png",
     "99_Attachments/Picture_of_the_Day/casey-wasserman-talent-agency-epstein-maxwell.png",
-    "20_Entities/07_TTPs/T1546.009 - AppCert DLLs.md",
-    "20_Entities/07_TTPs/T1546.010 - AppInit DLLs.md",
-    "20_Entities/07_TTPs/T1546.011 - Application Shimming.md",
-    "20_Entities/07_TTPs/T1546.012 - Image File Execution Options Injection.md",
-    "20_Entities/07_TTPs/T1546.013 - PowerShell Profile.md",
-    "20_Entities/07_TTPs/T1546.014 - Emond.md",
-    "20_Entities/07_TTPs/T1546.015 - Component Object Model Hijacking.md",
-    "20_Entities/07_TTPs/T1546.016 - Installer Packages.md",
-    "20_Entities/07_TTPs/T1546.017 - Udev Rules.md",
-    "20_Entities/07_TTPs/T1546.018 - Python Startup Hooks.md",
-    "20_Entities/07_TTPs/T1547 - Boot or Logon Autostart Execution.md",
-    "20_Entities/07_TTPs/T1547.001 - Registry Run Keys or Startup Folder.md",
-    "20_Entities/07_TTPs/T1547.002 - Authentication Package.md"
+    "20_Entities/07_TTPs/T1546.009 - AppCert DLLs.md"
   ]
 }
