@@ -201,7 +201,7 @@
         "type": "increment",
         "resetAfter": 2
       },
-      "autoCreate": false,
+      "autoCreate": true,
       "commands": [],
       "decorations": [
         {
@@ -334,7 +334,7 @@
         "type": "increment",
         "resetAfter": 2
       },
-      "autoCreate": false,
+      "autoCreate": true,
       "commands": [],
       "decorations": [
         {
@@ -451,7 +451,7 @@
         "type": "increment",
         "resetAfter": 2
       },
-      "autoCreate": false,
+      "autoCreate": true,
       "commands": [],
       "decorations": [
         {
@@ -518,6 +518,105 @@
             "bold": false,
             "italic": false,
             "link": "year",
+            "journal": "",
+            "color": {
+              "type": "theme",
+              "name": "text-normal"
+            },
+            "background": {
+              "type": "transparent"
+            },
+            "addDecorations": false
+          }
+        ]
+      },
+      "calendarViewBlock": {
+        "rows": [],
+        "decorateWholeBlock": false
+      },
+      "frontmatter": {
+        "dateField": "journal_date",
+        "addStartDate": true,
+        "startDateField": "journal_start_date",
+        "addEndDate": true,
+        "endDateField": "journal_end_date",
+        "indexField": ""
+      }
+    },
+    "Journal Yearly": {
+      "name": "Journal Yearly",
+      "shelves": [],
+      "write": {
+        "type": "year"
+      },
+      "confirmCreation": false,
+      "nameTemplate": "{{date}}",
+      "dateFormat": "YYYY",
+      "folder": "10_Operations/09_Journals/05_Yearly",
+      "templates": [],
+      "start": "",
+      "end": {
+        "type": "never"
+      },
+      "index": {
+        "enabled": false,
+        "anchorDate": "",
+        "anchorIndex": 1,
+        "allowBefore": false,
+        "type": "increment",
+        "resetAfter": 2
+      },
+      "autoCreate": true,
+      "commands": [],
+      "decorations": [
+        {
+          "mode": "and",
+          "conditions": [
+            {
+              "type": "has-note"
+            }
+          ],
+          "styles": [
+            {
+              "type": "shape",
+              "size": 0.4,
+              "shape": "circle",
+              "color": {
+                "type": "theme",
+                "name": "interactive-accent"
+              },
+              "placement_x": "center",
+              "placement_y": "bottom"
+            }
+          ]
+        }
+      ],
+      "navBlock": {
+        "type": "create",
+        "decorateWholeBlock": false,
+        "rows": [
+          {
+            "template": "{{date:YYYY}}",
+            "fontSize": 3,
+            "bold": true,
+            "italic": false,
+            "link": "self",
+            "journal": "",
+            "color": {
+              "type": "theme",
+              "name": "text-normal"
+            },
+            "background": {
+              "type": "transparent"
+            },
+            "addDecorations": true
+          },
+          {
+            "template": "{{relative_date}}",
+            "fontSize": 0.7,
+            "bold": false,
+            "italic": false,
+            "link": "none",
             "journal": "",
             "color": {
               "type": "theme",
