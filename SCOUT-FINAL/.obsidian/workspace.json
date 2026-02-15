@@ -1,0 +1,302 @@
+{
+  "main": {
+    "id": "070301140212d8ff",
+    "type": "split",
+    "children": [
+      {
+        "id": "b06dc793333523ad",
+        "type": "tabs",
+        "children": [
+          {
+            "id": "de556296420b337a",
+            "type": "leaf",
+            "state": {
+              "type": "empty",
+              "state": {},
+              "icon": "lucide-file",
+              "title": "New tab"
+            }
+          }
+        ]
+      }
+    ],
+    "direction": "vertical"
+  },
+  "left": {
+    "id": "bf67c7dde2d62135",
+    "type": "split",
+    "children": [
+      {
+        "id": "1961ab80fcdf4ed6",
+        "type": "tabs",
+        "children": [
+          {
+            "id": "acbbc67b4e53852c",
+            "type": "leaf",
+            "state": {
+              "type": "file-explorer",
+              "state": {
+                "sortOrder": "alphabetical",
+                "autoReveal": false
+              },
+              "icon": "lucide-folder-closed",
+              "title": "Files"
+            }
+          },
+          {
+            "id": "3b22f90845999ab5",
+            "type": "leaf",
+            "state": {
+              "type": "search",
+              "state": {
+                "query": "",
+                "matchingCase": false,
+                "explainSearch": false,
+                "collapseAll": false,
+                "extraContext": false,
+                "sortOrder": "alphabetical"
+              },
+              "icon": "lucide-search",
+              "title": "Search"
+            }
+          },
+          {
+            "id": "d3a36871f02ae075",
+            "type": "leaf",
+            "state": {
+              "type": "bookmarks",
+              "state": {},
+              "icon": "lucide-bookmark",
+              "title": "Bookmarks"
+            }
+          }
+        ]
+      },
+      {
+        "id": "5ae0bfee00487acf",
+        "type": "tabs",
+        "children": [
+          {
+            "id": "dc9762ec703256f1",
+            "type": "leaf",
+            "state": {
+              "type": "graph",
+              "state": {},
+              "icon": "lucide-git-fork",
+              "title": "Graph view"
+            }
+          }
+        ]
+      }
+    ],
+    "direction": "horizontal",
+    "width": 300
+  },
+  "right": {
+    "id": "8bb49da89415bed4",
+    "type": "split",
+    "children": [
+      {
+        "id": "e7b7b9a932f1b4aa",
+        "type": "tabs",
+        "dimension": 37.742248062015506,
+        "children": [
+          {
+            "id": "144242f06a11d421",
+            "type": "leaf",
+            "state": {
+              "type": "backlink",
+              "state": {
+                "collapseAll": false,
+                "extraContext": false,
+                "sortOrder": "alphabetical",
+                "showSearch": false,
+                "searchQuery": "",
+                "backlinkCollapsed": false,
+                "unlinkedCollapsed": true
+              },
+              "icon": "links-coming-in",
+              "title": "Backlinks"
+            }
+          },
+          {
+            "id": "0bcabda1f591f5e4",
+            "type": "leaf",
+            "state": {
+              "type": "outgoing-link",
+              "state": {
+                "linksCollapsed": false,
+                "unlinkedCollapsed": true
+              },
+              "icon": "links-going-out",
+              "title": "Outgoing links"
+            }
+          },
+          {
+            "id": "ff67805065cbfabd",
+            "type": "leaf",
+            "state": {
+              "type": "tag",
+              "state": {
+                "sortOrder": "frequency",
+                "useHierarchy": true,
+                "showSearch": false,
+                "searchQuery": ""
+              },
+              "icon": "lucide-tags",
+              "title": "Tags"
+            }
+          },
+          {
+            "id": "7b5ddff47bb0e807",
+            "type": "leaf",
+            "state": {
+              "type": "all-properties",
+              "state": {
+                "sortOrder": "frequency",
+                "showSearch": false,
+                "searchQuery": ""
+              },
+              "icon": "lucide-archive",
+              "title": "All properties"
+            }
+          },
+          {
+            "id": "62aa6149c1fe3cfa",
+            "type": "leaf",
+            "state": {
+              "type": "outline",
+              "state": {
+                "file": "10_Operations/09_Journals/01_Daily/2026/02/2026-02-14.md",
+                "followCursor": false,
+                "showSearch": false,
+                "searchQuery": ""
+              },
+              "icon": "lucide-list",
+              "title": "Outline of 2026-02-14"
+            }
+          }
+        ]
+      },
+      {
+        "id": "2a4ba5297401f07d",
+        "type": "tabs",
+        "dimension": 37.742248062015506,
+        "children": [
+          {
+            "id": "f88ed7169f13873e",
+            "type": "leaf",
+            "state": {
+              "type": "localgraph",
+              "state": {
+                "options": {
+                  "collapse-filter": true,
+                  "search": "",
+                  "localJumps": 1,
+                  "localBacklinks": true,
+                  "localForelinks": true,
+                  "localInterlinks": false,
+                  "showTags": false,
+                  "showAttachments": false,
+                  "hideUnresolved": false,
+                  "collapse-color-groups": true,
+                  "colorGroups": [],
+                  "collapse-display": true,
+                  "showArrow": false,
+                  "textFadeMultiplier": 0,
+                  "nodeSizeMultiplier": 1,
+                  "lineSizeMultiplier": 1,
+                  "collapse-forces": true,
+                  "centerStrength": 0.518713248970312,
+                  "repelStrength": 10,
+                  "linkStrength": 1,
+                  "linkDistance": 250,
+                  "scale": 0.7132754626224418,
+                  "close": true
+                }
+              },
+              "icon": "lucide-git-fork",
+              "title": "Graph view"
+            }
+          }
+        ]
+      },
+      {
+        "id": "ba6386c958732be2",
+        "type": "tabs",
+        "dimension": 24.515503875968992,
+        "children": [
+          {
+            "id": "026d6b7a62acdef7",
+            "type": "leaf",
+            "state": {
+              "type": "journal-calendar",
+              "state": {},
+              "icon": "calendar-days",
+              "title": "Calendar"
+            }
+          }
+        ]
+      }
+    ],
+    "direction": "horizontal",
+    "width": 391.5
+  },
+  "left-ribbon": {
+    "hiddenItems": {
+      "switcher:Open quick switcher": false,
+      "graph:Open graph view": false,
+      "canvas:Create new canvas": false,
+      "daily-notes:Open today's daily note": false,
+      "templates:Insert template": false,
+      "command-palette:Open command palette": false,
+      "bases:Create new base": false,
+      "templater-obsidian:Templater": false,
+      "pexels-banner:🚩 Pixel Banner Menu": false,
+      "ioc-lens:Activate IOC Lens": false,
+      "table-editor-obsidian:Advanced Tables Toolbar": false
+    }
+  },
+  "active": "acbbc67b4e53852c",
+  "lastOpenFiles": [
+    "10_Operations/04_Incidents/INC-2026-000001 - Vishing Attack Against 5 employees/INC-2026-000001 - Vishing Attack Against 5 employees.md",
+    "10_Operations/09_Journals/01_Daily/2026/02/2026-02-14.md",
+    "10_Operations/04_Incidents/INC-2026-000002 - Test Chronos Timeline Insertion/INC-2026-000002 - Test Chronos Timeline Insertion.md",
+    "10_Operations/04_Incidents/INC-2026-000002 - Test Chronos Timeline Insertion/Timeline",
+    "10_Operations/04_Incidents/INC-2026-000002 - Test Chronos Timeline Insertion/Evidence",
+    "10_Operations/04_Incidents/INC-2026-000002 - Test Chronos Timeline Insertion",
+    "00_System/00_Templates/02_Operations/Incident.md Template.md",
+    "00_System/00_Templates/02_Operations/Timeline.md Template.md",
+    "10_Operations/04_Incidents/INC-2026-000001 - Vishing Attack Against 5 employees/Timeline",
+    "10_Operations/04_Incidents/INC-2026-000001 - Vishing Attack Against 5 employees/Evidence",
+    "10_Operations/04_Incidents/INC-2026-000001 - Vishing Attack Against 5 employees",
+    "99_Attachments/SCOUT_Obsidian_Banner.png",
+    "00_System/00_Templates/02_Operations/Log To Daily Shift Notes.md",
+    "10_Operations/04_Incidents/INC-2026-000008 - Vishing attack against 5 employees/INC-2026-000008 - Vishing attack against 5 employees.md",
+    "10_Operations/04_Incidents/INC-2026-000008 - Vishing attack against 5 employees",
+    "10_Operations/04_Incidents/INC-2026-000008 - Vishing attack against 5 employees/Timeline",
+    "10_Operations/04_Incidents/INC-2026-000008 - Vishing attack against 5 employees/Evidence",
+    "10_Operations/04_Incidents/1 - Test title/1 - Test title.md",
+    "10_Operations/04_Incidents/1 - Test title/Timeline",
+    "99_Attachments/Picture_of_the_Day/2026-02-14 - clipboard.png",
+    "99_Attachments/Picture_of_the_Day/pro-wrestling-politics-cec.png",
+    "99_Attachments/Picture_of_the_Day/casey-wasserman-talent-agency-epstein-maxwell.png",
+    "20_Entities/07_TTPs/T1546.009 - AppCert DLLs.md",
+    "20_Entities/07_TTPs/T1546.010 - AppInit DLLs.md",
+    "20_Entities/07_TTPs/T1546.011 - Application Shimming.md",
+    "20_Entities/07_TTPs/T1546.012 - Image File Execution Options Injection.md",
+    "20_Entities/07_TTPs/T1546.013 - PowerShell Profile.md",
+    "20_Entities/07_TTPs/T1546.014 - Emond.md",
+    "20_Entities/07_TTPs/T1546.015 - Component Object Model Hijacking.md",
+    "20_Entities/07_TTPs/T1546.016 - Installer Packages.md",
+    "20_Entities/07_TTPs/T1546.017 - Udev Rules.md",
+    "20_Entities/07_TTPs/T1546.018 - Python Startup Hooks.md",
+    "20_Entities/07_TTPs/T1547 - Boot or Logon Autostart Execution.md",
+    "20_Entities/07_TTPs/T1547.001 - Registry Run Keys or Startup Folder.md",
+    "20_Entities/07_TTPs/T1547.002 - Authentication Package.md",
+    "20_Entities/07_TTPs/T1547.003 - Time Providers.md",
+    "20_Entities/07_TTPs/T1547.004 - Winlogon Helper DLL.md",
+    "20_Entities/07_TTPs/T1547.005 - Security Support Provider.md",
+    "20_Entities/07_TTPs/T1547.006 - Kernel Modules and Extensions.md"
+  ]
+}

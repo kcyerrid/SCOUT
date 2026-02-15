@@ -1,0 +1,509 @@
+/* OVERRIDE CHRONOS DEAFULT SETTINGS FOR OBSIDIAN */
+/* Chronos theme variables mapped to Obsidian theme vars */
+.chronos-timeline-container {
+	/* neutrals / misc */
+	--chronos-semi-gray: hsla(0, 0%, 50%, 0.4);
+	--chronos-opacity: 0.2;
+
+	/* backgrounds & surfaces */
+	--chronos-bg-primary: var(--background-primary);
+	--chronos-bg-secondary: var(--background-secondary);
+
+	/* text */
+	--chronos-text-normal: var(--text-normal);
+	--chronos-text-muted: var(--text-muted);
+	--chronos-text-on-accent: var(--text-on-accent);
+	--chronos-bg-text: var(--text-on-primary);
+
+	/* accent / interactive */
+	--chronos-accent: var(--interactive-accent);
+	--chronos-accent-hover: var(--interactive-accent-hover);
+	--chronos-accent-alpha: hsl(
+		var(--accent-h) var(--accent-s) var(--accent-l) / 0.2
+	);
+	--chronos-interactive: var(--interactive-accent);
+	--chronos-interactive-hover: var(--interactive-accent-hover);
+
+	/* borders / focus */
+	--chronos-border: var(--text-muted);
+	--chronos-border-active: rgba(3, 102, 214, 0.5);
+
+	/* radius / icons */
+	--chronos-radius: 6px;
+	--chronos-radius-small: 3px;
+	--chronos-icon-color: var(--text-muted);
+
+	/* palette */
+	--chronos-color-red: var(--color-red);
+	--chronos-color-red-rgb: var(--color-red-rgb);
+
+	--chronos-color-green: var(--color-green);
+	--chronos-color-green-rgb: var(--color-green-rgb);
+
+	--chronos-color-blue: var(--color-blue);
+	--chronos-color-blue-rgb: var(--color-blue-rgb);
+
+	--chronos-color-yellow: var(--color-yellow);
+	--chronos-color-yellow-rgb: var(--color-yellow-rgb);
+
+	--chronos-color-orange: var(--color-orange);
+	--chronos-color-orange-rgb: var(--color-orange-rgb);
+
+	--chronos-color-purple: var(--color-purple);
+	--chronos-color-purple-rgb: var(--color-purple-rgb);
+
+	--chronos-color-pink: var(--color-pink);
+	--chronos-color-pink-rgb: var(--color-pink-rgb);
+
+	--chronos-color-cyan: var(--color-cyan);
+	--chronos-color-cyan-rgb: var(--color-cyan-rgb);
+}
+
+.workspace-leaf-content[data-type="chronos-timeline"] .view-content {
+	display: flex;
+	flex-direction: column;
+	gap: 2rem;
+}
+
+.chronos-error-message-container {
+	padding: 1rem 1.5rem;
+}
+
+.chronos-timeline-container .vis-timeline {
+	border: 2px solid transparent !important;
+	border-radius: 0 !important;
+	cursor: default;
+}
+
+.chronos-timeline-container .vis-timeline.vis-active {
+	border-color: hsla(var(--color-accent-hsl), 0.5) !important;
+	border-radius: 0 !important;
+}
+
+.chronos-timeline-container .vis-label {
+	color: var(--text-muted) !important;
+}
+
+.chronos-timeline-container .vis-custom-time,
+.chronos-timeline-container .vis-custom-time-marker {
+	color: var(--color-base-00) !important;
+	background-color: var(--color-base-70) !important;
+}
+
+.chronos-timeline-container .vis-item.vis-background {
+	background-color: hsla(var(--color-accent-hsl), 0.2);
+	color: var(--text-on-primary);
+}
+
+.chronos-timeline-container .vis-item {
+	border-radius: var(--radius-s) !important;
+	border-color: var(--color-accent);
+}
+
+.chronos-timeline-container .vis-item.with-caps:not(.vis-background) {
+	border-radius: 50px !important;
+}
+
+.chronos-timeline-container .vis-time-axis .vis-grid.vis-minor {
+	border-color: var(--chronos-semi-gray) !important;
+}
+
+.chronos-timeline-container .vis-minor {
+	color: var(--text-muted) !important;
+}
+
+.chronos-timeline-container .vis-major {
+	color: var(--text-muted) !important;
+}
+
+/* Link styles*/
+.chronos-timeline-container .is-link {
+	cursor: pointer !important;
+}
+
+.chronos-timeline-container .is-link .vis-item-content {
+	text-transform: none !important;
+	text-decoration: underline !important;
+	text-decoration-line: underline !important;
+	text-decoration-style: solid !important;
+	text-decoration-color: currentColor !important;
+	text-underline-offset: 5px !important;
+}
+
+.chronos-timeline-container .vis-item-content {
+	text-decoration: inherit !important;
+}
+
+.chronos-timeline-container .vis-dot,
+.chronos-timeline-container .vis-line {
+	background-color: var(--interactive-accent) !important;
+	color: var(--interactive-accent) !important;
+}
+
+/* Ensure code editor button is always on top and easy to find with pointer, 
+   in chronos blocks only as to not interfer with normal Obsidian behavior 
+ */
+.block-language-chronos ~ .edit-block-button {
+	z-index: 999;
+	cursor: pointer !important;
+}
+
+.vis-custom-time[title]::after {
+	content: attr(title);
+	display: none;
+}
+
+.chronos-setting-header {
+	color: var(--text-muted);
+}
+.chronos-setting-p {
+	color: var(--text-muted);
+	margin-left: 1em;
+}
+
+.chronos-settings-md-container {
+	min-height: 250px;
+	width: 100%;
+	overflow-y: auto;
+	padding: 1rem;
+	border: 1px solid var(--interactive-border-color);
+	background-color: var(--color-base-20);
+	border-radius: 5px;
+	font-family: var(--font-monospace), "Source Code Pro", "Courier New",
+		monospace;
+}
+
+.chronos-settings .mod-cta,
+.chronos-settings a {
+	margin-left: 1rem;
+	cursor: pointer;
+}
+.chronos-settings .mod-cta {
+	margin-top: 0.75rem;
+}
+
+.ai-setting.is-disabled {
+	display: none;
+}
+
+/* Width toggle button */
+.chronos-width-toggle {
+	position: absolute;
+	top: 5px;
+	left: 5px;
+	z-index: 1000;
+	color: var(--text-on-accent);
+	background-color: transparent !important;
+	border: none;
+	border-radius: var(--radius-s);
+	padding: 6px 8px;
+	cursor: pointer;
+	font-size: 10px;
+	opacity: 0;
+	transition: opacity 0.2s ease;
+	display: flex;
+	align-items: center;
+	gap: 4px;
+	white-space: nowrap;
+	box-shadow: none !important;
+}
+
+.chronos-width-toggle:hover {
+	background-color: var(--chronos-semi-gray) !important;
+}
+
+.chronos-timeline-container:hover .chronos-width-toggle {
+	opacity: 1;
+}
+
+/* Dynamic width using CSS custom property */
+.chronos-width-expanded {
+	width: calc(var(--chronos-editor-width) - 2rem) !important;
+	position: relative;
+	left: 50%;
+	transform: translateX(-50%);
+	transition:
+		width 0.3s ease,
+		left 0.3s ease,
+		transform 0.3s ease;
+	overflow: visible;
+}
+
+/* grandparent of chronos timeline elements - the code block containing it. animates transition on minimize */
+.cm-preview-code-block.cm-lang-chronos {
+	transition:
+		width 0.3s ease,
+		left 0.3s ease,
+		transform 0.3s ease;
+}
+
+.chronos-folder-list-modal-muted-text {
+	color: var(--text-muted);
+}
+
+.chronos-changelog-view {
+	padding: 1.5rem !important;
+	overflow-y: auto;
+}
+
+.chronos-changelog-title {
+	margin-bottom: 0.5rem;
+	color: var(--text-normal);
+}
+
+.chronos-changelog-releases-link {
+	display: block;
+	font-size: 0.9em;
+	color: var(--text-accent);
+	text-decoration: none;
+	margin-bottom: 1rem;
+}
+
+.chronos-changelog-releases-link:hover {
+	text-decoration: underline;
+	color: var(--text-accent-hover);
+}
+
+.chronos-changelog-separator {
+	border: none;
+	border-top: 1px solid var(--background-modifier-border);
+	margin: 1rem 0;
+}
+
+.chronos-changelog-entry {
+	margin-bottom: 2rem;
+}
+
+.chronos-changelog-entry:last-child {
+	margin-bottom: 0;
+}
+
+.chronos-changelog-header {
+	font-size: 1.2rem;
+	font-weight: bold;
+	color: var(--interactive-accent);
+	margin-bottom: 1rem;
+}
+
+.chronos-changelog-content {
+	line-height: 1.6;
+	color: var(--text-normal);
+}
+
+.chronos-changelog-content h2,
+.chronos-changelog-content h3,
+.chronos-changelog-content h4 {
+	margin-top: 1rem;
+	margin-bottom: 0.5rem;
+	color: var(--text-normal);
+}
+
+.chronos-changelog-content h2 {
+	font-size: 1.2em;
+}
+
+.chronos-changelog-content h3 {
+	font-size: 1.1em;
+}
+
+.chronos-changelog-content ul,
+.chronos-changelog-content ol {
+	margin-left: 1.5rem;
+	margin-bottom: 0.5rem;
+	padding-left: 0.5rem;
+	list-style-position: outside;
+}
+
+.chronos-changelog-content ul {
+	list-style-type: disc;
+}
+
+.chronos-changelog-content ol {
+	list-style-type: decimal;
+}
+
+.chronos-changelog-content li {
+	margin-bottom: 0.3rem;
+	color: var(--text-normal);
+	display: list-item;
+}
+
+.chronos-changelog-content p {
+	margin-bottom: 0.5rem;
+	color: var(--text-normal);
+}
+
+.chronos-changelog-content code {
+	background: var(--background-secondary);
+	padding: 0.2em 0.4em;
+	border-radius: 3px;
+	font-size: 0.9em;
+	font-family: var(--font-monospace);
+}
+
+.chronos-changelog-content pre {
+	background: var(--background-secondary);
+	border: 1px solid var(--background-modifier-border);
+	border-radius: var(--radius-s);
+	margin: 1rem 0;
+	padding: 1rem;
+	overflow-x: auto;
+	position: relative;
+}
+
+.chronos-changelog-content pre code {
+	background: transparent;
+	padding: 0;
+	border-radius: 0;
+	font-size: 0.85em;
+	font-family: var(--font-monospace);
+}
+
+.chronos-changelog-content .copy-code-button {
+	position: absolute;
+	top: 0.5rem;
+	right: 0.5rem;
+	cursor: pointer;
+}
+
+.chronos-changelog-content strong {
+	color: var(--text-normal);
+	font-weight: 600;
+}
+
+.chronos-changelog-content img {
+	margin: 2rem 0;
+	border: 1px solid var(--text-muted);
+	border-radius: var(--radius-s);
+}
+
+.chronos-changelog-support {
+	margin-top: 1rem;
+	padding-bottom: 4rem;
+	text-align: center;
+	display: flex;
+	flex-direction: column;
+	justify-content: center;
+	align-items: center;
+	gap: 0.75rem;
+}
+
+.chronos-changelog-support-text {
+	color: var(--text-muted);
+	font-style: italic;
+	font-size: 0.9em;
+}
+
+.chronos-changelog-support a {
+	display: inline-block;
+}
+
+.chronos-changelog-support img {
+	border: none;
+	margin: 0;
+	transition: transform 0.2s ease;
+}
+
+.chronos-changelog-support img:hover {
+	transform: scale(1.05);
+}
+
+.chronos-changelog-hire-text {
+	margin-top: 1rem;
+	text-align: center;
+	color: var(--text-muted);
+	font-style: italic;
+	font-size: 0.85em;
+}
+
+.chronos-changelog-hire-text a {
+	color: var(--text-accent);
+	text-decoration: none;
+}
+
+.chronos-changelog-hire-text a:hover {
+	text-decoration: underline;
+}
+
+.chronos-releases-link {
+	margin-top: 0rem;
+	margin-bottom: 1rem;
+	padding-left: 1rem;
+}
+
+.chronos-releases-link a {
+	color: var(--text-accent);
+	text-decoration: none;
+}
+
+.chronos-releases-link a:hover {
+	text-decoration: underline;
+}
+
+.chronos-changelog-checkbox-container {
+	display: flex;
+	align-items: center;
+	gap: 0.25rem;
+	font-size: smaller;
+	color: var(--text-muted);
+}
+
+.chronos-changelog-checkbox {
+	cursor: pointer;
+}
+
+.bmc-styled-link {
+	display: inline-block;
+	padding: 12px 18px;
+	background-color: #ffdd00;
+	color: #000000;
+	font-family: Georgia, "Times New Roman", Times, serif;
+	font-size: 24px;
+	text-decoration: none;
+	border-radius: 8px;
+	border: 1px solid #000000;
+	cursor: pointer;
+	transition:
+		transform 0.2s ease,
+		background-color 0.2s ease;
+}
+
+.bmc-styled-link:focus,
+.chronos-changelog-checkbox:focus,
+.chronos-changelog-hire-text a:focus {
+	outline: 2px solid var(--text-accent);
+	outline-offset: 4px;
+}
+.bmc-styled-link:hover {
+	transform: scale(1.05);
+	text-decoration: none;
+	color: #000000;
+}
+
+.chronos-bases-view-container {
+	padding: 2rem;
+}
+
+.chronos-bases-view-container.chronos-sidebar {
+	padding: 0.5rem !important;
+}
+
+/* Chronos Bases View Buttons */
+.chronos-bases-view-copy-btn,
+.chronos-bases-view-share-btn {
+	margin-top: 1rem;
+	background: none;
+	border: none;
+	cursor: pointer;
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+}
+
+.chronos-bases-view-share-btn {
+	margin-left: 0.5rem;
+}
+
+.chronos-bases-view-timeline-container .chronos-error-message-container {
+	color: var(--text-normal) !important;
+}

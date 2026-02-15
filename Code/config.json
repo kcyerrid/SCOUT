@@ -15,14 +15,14 @@
     }
   },
   "paths": {
-    "SCOUT_ROOT": "C:/SCOUT/SCOUT-OPEN/SCOUT",
-    "CIPHER_ROOT": "C:/SCOUT/SCOUT-OPEN/SCOUT",
-    "VAULT_ROOT": "C:/SCOUT/SCOUT-OPEN/SCOUT",
+    "SCOUT_ROOT": "C:/SCOUT-FINAL/SCOUT/SCOUT-FINAL",
+    "CIPHER_ROOT": "C:/SCOUT-FINAL/SCOUT/SCOUT-FINAL",
+    "VAULT_ROOT": "C:/SCOUT-FINAL/SCOUT/SCOUT-FINAL",
     "DAILY_NOTES_DIR": "10_Operations/09_Journals/01_Daily",
-    "OBSIDIAN_EXE": "{LOCALAPPDATA}/Programs/Obsidian/Obsidian.exe",
-    "OBSIDIAN_VAULT": "SCOUT",
+    "OBSIDIAN_EXE": "C:/Users/kyerrid.YERRIDCLAN/AppData/Local/Programs/Obsidian/Obsidian.exe",
+    "OBSIDIAN_VAULT": "SCOUT-FINAL",
     "DAILY_NOTES_REL": "10_Operations/09_Journals/01_Daily",
-    "RSS_DB": "C:/SCOUT/SCOUT-OPEN/Code/data/rss_news.db"
+    "RSS_DB": "C:/SCOUT-FINAL/SCOUT/Code/data/rss_news.db"
   },
   "llm": {
     "provider": "openai",
@@ -38,7 +38,7 @@
   },
   "analyst_profile": {
     "name": "YOUR NAME",
-    "email": "you@company.com",
+    "email": "you@your_domain.com",
     "phone": "555-555-5555",
     "title": "Senior Security Analyst"
   },

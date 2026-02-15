@@ -1,0 +1,24 @@
+views:
+  - type: table
+    name: All Journal Entries
+    filters:
+      and:
+        - entity_type.contains("daily_journal")
+    order:
+      - file.name
+      - shift_start
+      - shift_end
+      - energy_rating
+      - cynicism_rating
+      - productivity_rating
+      - open_tasks
+      - journal_end_date
+      - journal_start_date
+      - journal_date
+  - type: table
+    name: Weekly Notes
+    filters:
+      and:
+        - entity_type == "weekly_rollup"
+    order:
+      - file.name

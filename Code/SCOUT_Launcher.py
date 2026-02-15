@@ -10,8 +10,7 @@ from tkinter import filedialog, messagebox, simpledialog, ttk
 from pathlib import Path
 from datetime import date, datetime, timedelta
 import webbrowser
-from urllib.parse import quote
-from urllib.parse import urlparse
+from urllib.parse import quote, unquote, urlparse
 from PIL import Image, ImageTk
 import sqlite3
 import hashlib
@@ -25,9 +24,10 @@ except Exception:
     Document = None
     BeautifulSoup = None
 try:
-    from tkinterdnd2 import DND_FILES, TkinterDnD  # type: ignore
+    from tkinterdnd2 import DND_FILES, DND_TEXT, TkinterDnD  # type: ignore
 except Exception:
     DND_FILES = None
+    DND_TEXT = None
     TkinterDnD = None
 
 BaseTk = TkinterDnD.Tk if (TkinterDnD and hasattr(TkinterDnD, "Tk")) else tk.Tk
@@ -9532,17 +9532,38 @@ class LauncherApp(BaseTk):
             fg="#DDDDDD",
             bg="#111111",
             font=("Segoe UI", 10),
-        ).pack(side="left")
+        ).pack(side="left", anchor="n")
         picture_var = tk.StringVar(value="")
-        picture_entry = tk.Entry(
+        # Drop zone frame - prominent drag-and-drop area
+        drop_zone = tk.Frame(
             picture_row,
+            bg="#1A1A1A",
+            highlightbackground="#444444",
+            highlightthickness=2,
+            highlightcolor="#666666",
+            cursor="hand2",
+        )
+        drop_zone.pack(side="left", fill="both", expand=True, padx=(0, 0))
+        drop_zone_inner = tk.Frame(drop_zone, bg="#1A1A1A")
+        drop_zone_inner.pack(fill="both", expand=True, padx=12, pady=10)
+        drop_zone_label = tk.Label(
+            drop_zone_inner,
+            text="Drop image here (file or from browser) or click Browse",
+            fg="#888888",
+            bg="#1A1A1A",
+            font=("Segoe UI", 10),
+            cursor="hand2",
+        )
+        drop_zone_label.pack(anchor="w")
+        picture_entry = tk.Entry(
+            drop_zone_inner,
             textvariable=picture_var,
             bg="#1A1A1A",
             fg="#FFFFFF",
             insertbackground="#FFFFFF",
             relief="flat",
         )
-        picture_entry.pack(side="left", fill="x", expand=True)
+        picture_entry.pack(fill="x", pady=(4, 0))
 
         def _pick_picture_from_path(file_path: str):
             try:
@@ -9617,9 +9638,12 @@ class LauncherApp(BaseTk):
                 if not (url.startswith("http://") or url.startswith("https://")):
                     return
                 parsed = urlparse(url)
-                filename = os.path.basename(parsed.path) or f"image_{datetime.now().strftime('%Y%m%d_%H%M%S')}.png"
+                filename = unquote(os.path.basename(parsed.path)) or f"image_{datetime.now().strftime('%Y%m%d_%H%M%S')}.png"
                 if "." not in filename:
                     filename += ".png"
+                # Sanitize filename for Windows/Obsidian (remove invalid chars)
+                filename = re.sub(r'[<>:"/\\|?*]', "_", filename)
+                filename = filename.strip(". ") or f"image_{datetime.now().strftime('%Y%m%d_%H%M%S')}.png"
 
                 attach_dir = Path(vault_root) / "99_Attachments" / "Picture_of_the_Day"
                 attach_dir.mkdir(parents=True, exist_ok=True)
@@ -9631,17 +9655,25 @@ class LauncherApp(BaseTk):
                     dest_path = attach_dir / f"{stem}_{counter}{suffix}"
                     counter += 1
 
+                # Use browser-like headers to avoid 403 (many sites block non-browser requests)
+                headers = {
+                    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+                    "Accept": "image/avif,image/webp,image/apng,image/svg+xml,image/*,*/*;q=0.8",
+                    "Accept-Language": "en-US,en;q=0.9",
+                    "Referer": f"{parsed.scheme}://{parsed.netloc}/",
+                }
                 data = None
                 content_type = ""
                 if requests:
-                    resp = requests.get(url, timeout=15)
+                    resp = requests.get(url, headers=headers, timeout=15)
                     resp.raise_for_status()
                     data = resp.content
                     content_type = (resp.headers.get("Content-Type") or "").lower()
                 else:
                     import urllib.request
 
-                    with urllib.request.urlopen(url, timeout=15) as resp:
+                    req = urllib.request.Request(url, headers=headers)
+                    with urllib.request.urlopen(req, timeout=15) as resp:
                         data = resp.read()
                         content_type = (resp.headers.get("Content-Type") or "").lower()
 
@@ -9717,17 +9749,43 @@ class LauncherApp(BaseTk):
             except Exception:
                 pass
 
+        def _extract_url_from_drop(text: str) -> str | None:
+            """Extract image URL from browser drop data (may include 'URL\\n' prefix or title)."""
+            if not text or not isinstance(text, str):
+                return None
+            text = text.strip()
+            for line in text.splitlines():
+                line = line.strip()
+                if line.upper().startswith("URL"):
+                    line = line[3:].strip()
+                if line.startswith("http://") or line.startswith("https://"):
+                    return line
+            if text.startswith("http://") or text.startswith("https://"):
+                return text.splitlines()[0].strip()
+            return None
+
         def _drop_picture(event):
+            action = getattr(event, "action", "copy")
             try:
                 raw = event.data
+                if not raw:
+                    return action
+                # Handle URL/text from browser (DND_TEXT) - e.g. dragging image from web page
+                url = _extract_url_from_drop(raw)
+                if url:
+                    _pick_picture_from_url(url)
+                    return action
+                # Handle file paths (DND_FILES)
                 paths = []
-                if hasattr(win, "tk") and raw:
+                if hasattr(win, "tk"):
                     try:
                         paths = list(win.tk.splitlist(raw))
                     except Exception:
-                        paths = [raw]
+                        paths = [raw] if isinstance(raw, str) else [raw]
+                else:
+                    paths = [raw] if isinstance(raw, str) else [raw]
                 if not paths:
-                    return
+                    return action
                 first = paths[0]
                 if isinstance(first, str) and (first.startswith("http://") or first.startswith("https://")):
                     _pick_picture_from_url(first)
@@ -9735,9 +9793,35 @@ class LauncherApp(BaseTk):
                     _pick_picture_from_path(first)
             except Exception:
                 pass
+            return action
 
+        def _update_drop_zone_label(*_):
+            val = (picture_var.get() or "").strip()
+            if val:
+                # Show shortened path for display
+                display = val.replace("[[", "").replace("]]", "")
+                if len(display) > 50:
+                    display = "..." + display[-47:]
+                drop_zone_label.config(text=display, fg="#AAAAAA")
+            else:
+                drop_zone_label.config(text="Drop image here (file or from browser) or click Browse", fg="#888888")
+
+        def _drop_enter(event):
+            drop_zone.config(highlightbackground="#6A9BD8", highlightcolor="#6A9BD8")
+            drop_zone_label.config(fg="#AAAAAA")
+            return event.action if hasattr(event, "action") else "copy"
+
+        def _drop_leave(event):
+            drop_zone.config(highlightbackground="#444444", highlightcolor="#666666")
+            _update_drop_zone_label()
+            return event.action if hasattr(event, "action") else "copy"
+
+        picture_var.trace_add("write", _update_drop_zone_label)
+
+        btn_row = tk.Frame(picture_row, bg="#111111")
+        btn_row.pack(side="left", padx=(8, 0), anchor="n")
         tk.Button(
-            picture_row,
+            btn_row,
             text="Browse",
             command=_pick_picture,
             bg="#2A2A2A",
@@ -9745,9 +9829,9 @@ class LauncherApp(BaseTk):
             relief="flat",
             padx=12,
             pady=2,
-        ).pack(side="left", padx=(8, 0))
+        ).pack(side="left", padx=(0, 4))
         tk.Button(
-            picture_row,
+            btn_row,
             text="Paste",
             command=_paste_picture_from_clipboard,
             bg="#2A2A2A",
@@ -9755,21 +9839,38 @@ class LauncherApp(BaseTk):
             relief="flat",
             padx=12,
             pady=2,
-        ).pack(side="left", padx=(8, 0))
+        ).pack(side="left")
 
-        if TkinterDnD and DND_FILES and hasattr(picture_entry, "drop_target_register"):
+        # Register drop zone as drag-and-drop target (DND_FILES + DND_TEXT for browser drops)
+        if TkinterDnD and DND_FILES and hasattr(drop_zone, "drop_target_register"):
             try:
-                picture_entry.drop_target_register(DND_FILES)
-                picture_entry.dnd_bind("<<Drop>>", _drop_picture)
-                tk.Label(
-                    picture_row,
-                    text="Drag an image file here",
-                    fg="#888888",
-                    bg="#111111",
-                    font=("Segoe UI", 9),
-                ).pack(side="left", padx=(10, 0))
+                types = [DND_FILES]
+                if DND_TEXT:
+                    types.append(DND_TEXT)
+                drop_zone.drop_target_register(*types)
+                drop_zone.dnd_bind("<<Drop>>", _drop_picture)
+                drop_zone.dnd_bind("<<DropEnter>>", _drop_enter)
+                drop_zone.dnd_bind("<<DropLeave>>", _drop_leave)
             except Exception:
                 pass
+        # Also allow drop on entry for users who drag onto the path field
+        if TkinterDnD and DND_FILES and hasattr(picture_entry, "drop_target_register"):
+            try:
+                types = [DND_FILES]
+                if DND_TEXT:
+                    types.append(DND_TEXT)
+                picture_entry.drop_target_register(*types)
+                picture_entry.dnd_bind("<<Drop>>", _drop_picture)
+            except Exception:
+                pass
+
+        def _on_drop_zone_click(event=None):
+            if event and event.widget == picture_entry:
+                return
+            _pick_picture()
+
+        drop_zone_label.bind("<Button-1>", _on_drop_zone_click)
+        drop_zone.bind("<Button-1>", _on_drop_zone_click)
 
         def _on_paste_event(_event=None):
             _paste_picture_from_clipboard()
@@ -10366,7 +10467,7 @@ def open_daily_note_live_with_intake(cfg: dict, tokens: dict, intake_block: str 
 
                     content = _apply_yaml_updates(content, yaml_updates)
 
-                    # Replace the picture placeholder with an inline embed
+                    # Replace the picture placeholder with an inline embed (vault-relative path)
                     try:
                         pic_val = (yaml_updates.get("picture_of_the_day") or "").strip()
                         if pic_val:
@@ -10741,6 +10842,16 @@ def _resolve_investigation_template(vault_root: Path) -> Path | None:
     return None
 
 
+def _incident_chronos_marker(created: str) -> str:
+    """Build Chronos marker line for incident created date. Format: = [YYYY-MM-DDThh:mm:ss] Incident Created"""
+    created = (created or "").strip()
+    if not created:
+        created = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    # Chronos expects YYYY-MM-DDThh:mm:ss (replace space with T)
+    chronos_date = created.replace(" ", "T", 1)
+    return f"= [{chronos_date}] Incident Created"
+
+
 def _apply_template_tokens(template_text: str, intake: dict) -> str:
     """
     Replaces common placeholder token forms in templates.
@@ -10748,6 +10859,7 @@ def _apply_template_tokens(template_text: str, intake: dict) -> str:
       {{incident_id}}, {{INCIDENT_ID}}, ${incident_id}, [[incident_id]]
     """
     # Normalize values
+    created = intake.get("created", "").strip()
     tokens = {
         "incident_id": (intake.get("incident_id", "").strip() or "INC-UNASSIGNED"),
         "title": (intake.get("title", "").strip() or "Untitled Incident"),
@@ -10755,13 +10867,14 @@ def _apply_template_tokens(template_text: str, intake: dict) -> str:
         "severity": intake.get("severity", "").strip(),
         "tlp": intake.get("tlp", "").strip(),
         "discovered": intake.get("discovered", "").strip(),
-        "created": intake.get("created", "").strip(),
+        "created": created,
         "source": intake.get("source", "").strip(),
         "reporter": intake.get("reporter", "").strip(),
         "tags": intake.get("tags", "").strip(),
         "affected_assets": intake.get("affected_assets", "").strip(),
         "summary": intake.get("summary", "").strip(),
         "notes": intake.get("notes", "").strip(),
+        "incident_chronos_marker": _incident_chronos_marker(created),
     }
 
     out = template_text
@@ -11096,7 +11209,6 @@ def create_obsidian_incident_stub(vault_root: Path, intake: dict) -> Path:
     slug = _safe_slug(f"{inc_id} - {title}")
     incident_dir = base_folder / slug
     incident_dir.mkdir(parents=True, exist_ok=True)
-    (incident_dir / "Timeline").mkdir(parents=True, exist_ok=True)
     (incident_dir / "Evidence").mkdir(parents=True, exist_ok=True)
     note_path = incident_dir / f"{slug}.md"
 
@@ -11449,10 +11561,13 @@ class IncidentIntakeWindow(tk.Toplevel):
         left.grid(row=0, column=0, sticky="nsew", padx=(0, 10))
         right.grid(row=0, column=1, sticky="nsew", padx=(10, 0))
 
-        def add_labeled_entry(parent, label, var):
+        def add_labeled_entry(parent, label, var, required=False):
             row = tk.Frame(parent, bg="#111111")
             row.pack(fill="x", pady=6)
-            tk.Label(row, text=label, fg="#DDDDDD", bg="#111111", font=("Segoe UI", 10)).pack(anchor="w")
+            lbl = tk.Label(row, text=label, fg="#DDDDDD", bg="#111111", font=("Segoe UI", 10))
+            lbl.pack(side="left", anchor="w")
+            if required:
+                tk.Label(row, text=" *", fg="#E05A5A", bg="#111111", font=("Segoe UI", 10)).pack(side="left", anchor="w")
             ent = tk.Entry(
                 row,
                 textvariable=var,
@@ -11489,7 +11604,7 @@ class IncidentIntakeWindow(tk.Toplevel):
             activebackground="#111111",
             activeforeground="#DDDDDD",
         ).pack(anchor="w")
-        add_labeled_entry(left, "Title", self.vars["title"])
+        add_labeled_entry(left, "Title", self.vars["title"], required=True)
         add_labeled_combo(left, "Severity", self.vars["severity"], ["low", "medium", "high", "critical"])
         add_labeled_combo(left, "TLP", self.vars["tlp"], ["TLP:CLEAR", "TLP:GREEN", "TLP:AMBER", "TLP:AMBER+STRICT", "TLP:RED"])
         add_labeled_entry(left, "Discovered (YYYY-MM-DD HH:MM:SS)", self.vars["discovered"])
@@ -11514,7 +11629,10 @@ class IncidentIntakeWindow(tk.Toplevel):
         narrative = tk.Frame(self._content, bg="#111111")
         narrative.pack(fill="x", padx=16, pady=(6, 10))
 
-        tk.Label(narrative, text="Summary", fg="#DDDDDD", bg="#111111", font=("Segoe UI", 10)).pack(anchor="w")
+        sum_lbl_row = tk.Frame(narrative, bg="#111111")
+        sum_lbl_row.pack(anchor="w")
+        tk.Label(sum_lbl_row, text="Summary", fg="#DDDDDD", bg="#111111", font=("Segoe UI", 10)).pack(side="left")
+        tk.Label(sum_lbl_row, text=" *", fg="#E05A5A", bg="#111111", font=("Segoe UI", 10)).pack(side="left")
         self.summary_txt = tk.Text(
             narrative,
             height=6,
@@ -11525,18 +11643,6 @@ class IncidentIntakeWindow(tk.Toplevel):
             wrap="word",
         )
         self.summary_txt.pack(fill="x", pady=(4, 10))
-
-        tk.Label(narrative, text="Initial Notes", fg="#DDDDDD", bg="#111111", font=("Segoe UI", 10)).pack(anchor="w")
-        self.notes_txt = tk.Text(
-            narrative,
-            height=8,
-            bg="#1B1B1B",
-            fg="#FFFFFF",
-            insertbackground="#FFFFFF",
-            relief="flat",
-            wrap="word",
-        )
-        self.notes_txt.pack(fill="x", pady=(4, 0))
 
         # Spacer so last text widget doesn't hide behind fixed bar when scrolled to bottom
         tk.Frame(self._content, bg="#111111", height=16).pack(fill="x")
@@ -11638,9 +11744,7 @@ class IncidentIntakeWindow(tk.Toplevel):
         if "summary" in (draft or {}):
             self.summary_txt.delete("1.0", "end")
             self.summary_txt.insert("1.0", draft.get("summary", ""))
-        if "notes" in (draft or {}):
-            self.notes_txt.delete("1.0", "end")
-            self.notes_txt.insert("1.0", draft.get("notes", ""))
+        # notes field removed from form
         if "sequential_mode" in (draft or {}):
             try:
                 self.sequential_mode_var.set(bool(draft.get("sequential_mode")))
@@ -11661,7 +11765,7 @@ class IncidentIntakeWindow(tk.Toplevel):
             else:
                 data["incident_id"] = _next_incident_id_from_vault(self.vault_root, default_year=year)
         data["summary"] = self.summary_txt.get("1.0", "end").strip()
-        data["notes"] = self.notes_txt.get("1.0", "end").strip()
+        data["notes"] = ""
         return data
 
     def _apply_sequential_suggestion(self) -> None:
@@ -11694,6 +11798,8 @@ class IncidentIntakeWindow(tk.Toplevel):
     def _validate(self, data: dict) -> tuple[bool, str]:
         if not data.get("title"):
             return False, "Title is required."
+        if not data.get("summary"):
+            return False, "Summary is required."
         return True, ""
 
     def _save_draft(self):
@@ -11712,7 +11818,6 @@ class IncidentIntakeWindow(tk.Toplevel):
         if getattr(self, "sequential_mode_var", None) is not None:
             self.sequential_mode_var.set(False)
         self.summary_txt.delete("1.0", "end")
-        self.notes_txt.delete("1.0", "end")
         messagebox.showinfo("Incident Intake", "Draft cleared.", parent=self)
 
     def _save_continue(self):
