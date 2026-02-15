@@ -1,0 +1,17 @@
+/* Incident notes: Properties collapsed by default, expand on hover
+   Notes with cssclass: incident-properties-collapsed get this behavior.
+   Enable in Settings → Appearance → CSS snippets. */
+@media screen and (min-width: 768px) {
+  .incident-properties-collapsed .metadata-container {
+    max-height: 2.7rem;
+    opacity: 0.7;
+    overflow: hidden;
+    transition: max-height 250ms ease-in-out, opacity 250ms;
+    margin-bottom: 0;
+  }
+  .incident-properties-collapsed .metadata-container:hover,
+  .incident-properties-collapsed .metadata-container:focus-within {
+    max-height: 2000px;
+    opacity: 1;
+  }
+}
