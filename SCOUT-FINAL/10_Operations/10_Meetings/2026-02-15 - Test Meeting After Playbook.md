@@ -2,15 +2,15 @@
 entity_type: meeting
 status: draft
 date: <% tp.date.now("YYYY-MM-DD") %>
-start_time:
-end_time:
-location:
+start_time: "2026-02-15 08:00:00"
+end_time: "2026-02-15 09:00:00"
+location: ""
 timezone: America/New_York
-title: <% tp.file.title %>
-attendees: []
+title: "Test Meeting After Playbook"
+attendees: ""
 owner:
 org:
-tags: "#log/meeting"
+tags: ""
 topics: []
 projects: []
 areas: []
@@ -20,34 +20,36 @@ action_items: []
 risks: []
 next_meeting:
 aliases: []
+created: "2026-02-15 08:00:00"
+updated: "2026-02-15 08:28:31"
 ---
 
-# {{title}}
+# Test Meeting After Playbook
 
 ## Metadata
-- **When:** {{start_time}} – {{end_time}}
-- **Where:** {{location}}
-- **Attendees:** {{attendees}}
-
+- **When:** <% tp.date.now("YYYY-MM-DD") %> - (Start: ` ` / End: ` `)
+- **Where:**
+- **Attendees:**
+- **Related:**
 
 ## Purpose
 -
 
 ## Agenda
 
-{{Agenda}}
+
 
 ## Notes
 
-{{Notes}}
+
 
 ## Decisions
 - [ ] Decision: ...  (owner: ...)
 	- Rationale:
 	- Impacted work [[ ]]
 
-## Action Items (use the task tag)
-- [ ] Task: 
+## Action Items
+- [ ] Task: ... #task 📅 2025-12-24
 	- owner::
 	- context:: [[ ]]
 

@@ -1,10 +1,10 @@
 {
-  "title": "Test Meeting",
-  "start_time": "2026-01-25 16:00:00",
-  "end_time": "",
+  "title": "Test Meeting with parameters",
+  "start_time": "2026-02-15 08:00:00",
+  "end_time": "2026-02-15 09:00:00",
   "location": "",
-  "attendees": "",
+  "attendees": "YOUR NAME, HIS NAME, HER NAME",
   "tags": "",
-  "agenda": "",
+  "agenda": "Test Agenda",
   "notes": ""
 }

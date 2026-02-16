@@ -2,15 +2,15 @@
 entity_type: meeting
 status: draft
 date: <% tp.date.now("YYYY-MM-DD") %>
-start_time:
-end_time:
-location:
+start_time: "2026-02-15 08:00:00"
+end_time: "2026-02-15 09:00:00"
+location: ""
 timezone: America/New_York
-title: <% tp.file.title %>
-attendees: []
+title: "Test Meeting with parameters"
+attendees: "YOUR NAME, HIS NAME, HER NAME"
 owner:
 org:
-tags: "#log/meeting"
+tags: ""
 topics: []
 projects: []
 areas: []
@@ -20,26 +20,28 @@ action_items: []
 risks: []
 next_meeting:
 aliases: []
+created: "2026-02-15 08:00:00"
+updated: "2026-02-15 08:49:16"
 ---
 
-# {{title}}
+# Test Meeting with parameters
 
 ## Metadata
-- **When:** {{start_time}} – {{end_time}}
-- **Where:** {{location}}
-- **Attendees:** {{attendees}}
-
+- **When:** 2026-02-15 08:00:00 – 2026-02-15 09:00:00
+- **Where:** 
+- **Attendees:** YOUR NAME, HIS NAME, HER NAME
+- **Related:** {{related}}
 
 ## Purpose
 -
 
 ## Agenda
 
-{{Agenda}}
+Test Agenda
 
 ## Notes
 
-{{Notes}}
+
 
 ## Decisions
 - [ ] Decision: ...  (owner: ...)

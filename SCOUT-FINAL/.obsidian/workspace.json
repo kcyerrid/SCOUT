@@ -13,12 +13,12 @@
             "state": {
               "type": "markdown",
               "state": {
-                "file": "10_Operations/04_Incidents/INC-2026-000001 - Test/INC-2026-000001 - Test.md",
+                "file": "00_System/00_Templates/03_CIPHER/Threat Actor Template.md",
                 "mode": "source",
                 "source": false
               },
               "icon": "lucide-file",
-              "title": "INC-2026-000001 - Test"
+              "title": "Threat Actor Template"
             }
           }
         ]
@@ -53,7 +53,7 @@
             "state": {
               "type": "search",
               "state": {
-                "query": "",
+                "query": "meeting template.md",
                 "matchingCase": false,
                 "explainSearch": false,
                 "collapseAll": false,
@@ -94,7 +94,7 @@
       }
     ],
     "direction": "horizontal",
-    "width": 300
+    "width": 524.5
   },
   "right": {
     "id": "8bb49da89415bed4",
@@ -103,7 +103,7 @@
       {
         "id": "e7b7b9a932f1b4aa",
         "type": "tabs",
-        "dimension": 37.742248062015506,
+        "dimension": 27.395934172313652,
         "children": [
           {
             "id": "144242f06a11d421",
@@ -111,7 +111,7 @@
             "state": {
               "type": "backlink",
               "state": {
-                "file": "10_Operations/04_Incidents/INC-2026-000001 - Test/INC-2026-000001 - Test.md",
+                "file": "00_System/00_Templates/03_CIPHER/Threat Actor Template.md",
                 "collapseAll": false,
                 "extraContext": false,
                 "sortOrder": "alphabetical",
@@ -121,7 +121,7 @@
                 "unlinkedCollapsed": true
               },
               "icon": "links-coming-in",
-              "title": "Backlinks for INC-2026-000001 - Test"
+              "title": "Backlinks for Threat Actor Template"
             }
           },
           {
@@ -130,12 +130,12 @@
             "state": {
               "type": "outgoing-link",
               "state": {
-                "file": "10_Operations/04_Incidents/INC-2026-000001 - Test/INC-2026-000001 - Test.md",
+                "file": "00_System/00_Templates/03_CIPHER/Threat Actor Template.md",
                 "linksCollapsed": false,
                 "unlinkedCollapsed": true
               },
               "icon": "links-going-out",
-              "title": "Outgoing links from INC-2026-000001 - Test"
+              "title": "Outgoing links from Threat Actor Template"
             }
           },
           {
@@ -173,13 +173,13 @@
             "state": {
               "type": "outline",
               "state": {
-                "file": "10_Operations/04_Incidents/INC-2026-000001 - Test/INC-2026-000001 - Test.md",
+                "file": "00_System/00_Templates/03_CIPHER/Threat Actor Template.md",
                 "followCursor": false,
                 "showSearch": false,
                 "searchQuery": ""
               },
               "icon": "lucide-list",
-              "title": "Outline of INC-2026-000001 - Test"
+              "title": "Outline of Threat Actor Template"
             }
           }
         ]
@@ -187,7 +187,7 @@
       {
         "id": "2a4ba5297401f07d",
         "type": "tabs",
-        "dimension": 37.742248062015506,
+        "dimension": 39.20619554695063,
         "children": [
           {
             "id": "f88ed7169f13873e",
@@ -195,7 +195,7 @@
             "state": {
               "type": "localgraph",
               "state": {
-                "file": "10_Operations/04_Incidents/INC-2026-000001 - Test/INC-2026-000001 - Test.md",
+                "file": "00_System/00_Templates/03_CIPHER/Threat Actor Template.md",
                 "options": {
                   "collapse-filter": true,
                   "search": "",
@@ -218,12 +218,12 @@
                   "repelStrength": 10,
                   "linkStrength": 1,
                   "linkDistance": 250,
-                  "scale": 0.7132754626224418,
+                  "scale": 0.7132754626224416,
                   "close": true
                 }
               },
               "icon": "lucide-git-fork",
-              "title": "Graph of INC-2026-000001 - Test"
+              "title": "Graph of Threat Actor Template"
             }
           }
         ]
@@ -231,7 +231,7 @@
       {
         "id": "ba6386c958732be2",
         "type": "tabs",
-        "dimension": 24.515503875968992,
+        "dimension": 33.39787028073572,
         "children": [
           {
             "id": "026d6b7a62acdef7",
@@ -247,7 +247,7 @@
       }
     ],
     "direction": "horizontal",
-    "width": 391.5
+    "width": 580.5
   },
   "left-ribbon": {
     "hiddenItems": {
@@ -266,47 +266,48 @@
   },
   "active": "de556296420b337a",
   "lastOpenFiles": [
-    "10_Operations/09_Journals/01_Daily/2026/02/2026-02-14.md",
-    "10_Operations/04_Incidents/INC-2026-000001 - Test/INC-2026-000001 - Test.md",
-    "10_Operations/04_Incidents/INC-2026-000001 - Test/Evidence",
-    "10_Operations/04_Incidents/INC-2026-000001 - Test",
-    "99_Attachments/Picture_of_the_Day/2026-02-14 - clipboard_1.png",
-    "99_Attachments/Picture_of_the_Day/bannon-epstein-take-down-pope-francis-latam-intl.png",
-    "10_Operations/04_Incidents/INC-2026-000002 - Test Incident 2/INC-2026-000002 - Test Incident 2.md",
-    "10_Operations/04_Incidents/INC-2026-000004 - Test incident/INC-2026-000004 - Test incident.md",
-    "10_Operations/09_Journals/05_Yearly/2026.md",
-    "10_Operations/09_Journals/04_Quarterly/2026-Q1.md",
-    "10_Operations/09_Journals/03_Monthly/2026-02.md",
-    "10_Operations/09_Journals/02_Weekly/2026-W7.md",
-    "10_Operations/04_Incidents/INC-2026-000003 - Test/INC-2026-000003 - Test.md",
-    "10_Operations/04_Incidents/INC-2026-000004 - Test incident/Evidence",
-    "10_Operations/04_Incidents/INC-2026-000004 - Test incident",
-    "10_Operations/04_Incidents/INC-2026-000001 - Test Incident/INC-2026-000001 - Test Incident.md",
+    "30_CIPHER/03_Threat_Actors/TA-0001 - Test Actor.md",
+    "TXXXX.md",
+    "30_CIPHER/03_Threat_Actors/G0001 - Test Actor 2.md",
+    "30_CIPHER/03_Threat_Actors/G0001 - Test Actor.md",
+    "60_Knowledge/How-Tos/HOW-00002 - Test How To.md",
+    "60_Knowledge/How-Tos/HOW-00001 - Test.md",
+    "00_System/00_Templates/01_Entities/Goal Template.md",
+    "10_Operations/09_Journals/01_Daily/2026/01/2026-01-18.md",
+    "10_Operations/09_Journals/01_Daily/2026/01",
+    "10_Operations/15_Goals/GOAL-2026-0003 - Test.md",
+    "10_Operations/15_Goals/GOAL-2026-0002 - Test.md",
+    "Me.md",
+    "00_System/00_Templates/01_Entities/Configuration Template.md",
+    "00_System/00_Templates/01_Entities/CVE Vulnerability Template.md",
+    "10_Operations/09_Journals/01_Daily/2026/02/2026-02-15.md",
+    "10_Operations/15_Goals/GOAL-2026-0001 - Test goal.md",
+    "10_Operations/11_Service_Level_Agreements/SLA-00005 - Test.md",
+    "10_Operations/15_Goals",
+    "00_System/00_Templates/02_Operations/Service Level Agreement Template.md",
+    "10_Operations/11_Service_Level_Agreements/SLA-00004 - Test 4.md",
+    "10_Operations/11_Service_Level_Agreements/SLA-00003 - Test SLA 3.md",
+    "00_System/00_Templates/02_Operations/Service Level Agreement Bootstrap Script.md",
+    "10_Operations/11_Service_Level_Agreements/SLA-00002 - Test SLA 2.md",
+    "10_Operations/11_Service_Level_Agreements/SLA-00001 - Test SLA.md",
+    "40_ITIDs/01_Definitions/ITID-12345 - Test ITID Title.md",
+    "40_ITIDs/01_Definitions/ITID-11112 - Machine Detected Phishing Message.md",
+    "10_Operations/04_Incidents/INC-2026-000002 - Regression Test after Project Note/INC-2026-000002 - Regression Test after Project Note.md",
+    "10_Operations/04_Incidents/INC-2026-000002 - Regression Test after Project Note/Evidence",
+    "10_Operations/04_Incidents/INC-2026-000002 - Regression Test after Project Note",
+    "10_Operations/14_Projects/PRJ-2026-0001 - Test Project.md",
+    "10_Operations/14_Projects",
+    "10_Operations/04_Incidents/INC-2026-000001 - Regression test of incident after procedure/Evidence",
+    "10_Operations/04_Incidents/INC-2026-000001 - Regression test of incident after procedure",
     "10_Operations/09_Journals/01_Daily/2026/02",
     "10_Operations/09_Journals/01_Daily/2026",
-    "10_Operations/04_Incidents/INC-2026-000003 - Test/Evidence",
-    "10_Operations/04_Incidents/INC-2026-000003 - Test",
-    "00_System/00_Templates/02_Operations/Chronos-Closure.md",
-    "00_System/00_Templates/02_Operations/Chronos-Recovery.md",
-    "00_System/00_Templates/02_Operations/Chronos-Eradication.md",
-    "00_System/00_Templates/02_Operations/Chronos-Containment.md",
-    "00_System/00_Templates/02_Operations/Chronos-Triage.md",
-    "00_System/00_Templates/02_Operations/Chronos-Detection.md",
-    "2026.md",
-    "10_Operations/09_Journals/02_Weekly/2026-W5.md",
-    "10_Operations/04_Incidents/INC-2026-000002 - Test Incident 2/Evidence",
-    "10_Operations/04_Incidents/INC-2026-000002 - Test Incident 2",
+    "99_Attachments/Picture_of_the_Day/2026-02-15 - clipboard.png",
+    "10_Operations/04_Incidents/INC-2026-000001 - test incident Regression/Evidence",
+    "99_Attachments/Picture_of_the_Day/2026-02-14 - clipboard_1.png",
+    "99_Attachments/Picture_of_the_Day/bannon-epstein-take-down-pope-francis-latam-intl.png",
     "99_Attachments/Picture_of_the_Day/2026-02-14 - clipboard.png",
-    "10_Operations/04_Incidents/INC-2026-000001 - Vishing Attack Against 5 employees/INC-2026-000001 - Vishing Attack Against 5 employees.md",
-    "10_Operations/04_Incidents/INC-2026-000002 - Test Chronos Timeline Insertion/INC-2026-000002 - Test Chronos Timeline Insertion.md",
-    "00_System/00_Templates/02_Operations/Incident.md Template.md",
-    "00_System/00_Templates/02_Operations/Timeline.md Template.md",
     "99_Attachments/SCOUT_Obsidian_Banner.png",
-    "00_System/00_Templates/02_Operations/Log To Daily Shift Notes.md",
-    "10_Operations/04_Incidents/INC-2026-000008 - Vishing attack against 5 employees/INC-2026-000008 - Vishing attack against 5 employees.md",
-    "10_Operations/04_Incidents/1 - Test title/1 - Test title.md",
     "99_Attachments/Picture_of_the_Day/pro-wrestling-politics-cec.png",
-    "99_Attachments/Picture_of_the_Day/casey-wasserman-talent-agency-epstein-maxwell.png",
-    "20_Entities/07_TTPs/T1546.009 - AppCert DLLs.md"
+    "99_Attachments/Picture_of_the_Day/casey-wasserman-talent-agency-epstein-maxwell.png"
   ]
 }

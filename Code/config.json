@@ -726,7 +726,7 @@
       "meeting": {
         "enabled": true,
         "date_field": "start_time",
-        "header_template": "### {created_time} - New Meeting Created - {title} - {start_date} {start_time}",
+        "header_template": "### {created_time} - New Meeting Created - {title} - {start_datetime} - {end_datetime}",
         "body_template": "Purpose\n\n- What is the stated objective of the meeting?\n- What is your role in the meeting?\n\nAgenda\n\nPost-Meeting Reflection\n\n- Was this meeting worth my time?\n- What is the impact of this meeting to your personal processes or tools?\n\n---"
       },
       "playbook": {
@@ -738,7 +738,7 @@
       "procedure": {
         "enabled": true,
         "date_field": "created",
-        "header_template": "### {time} - New Procedure Created - {procedure_id} - {title}",
+        "header_template": "### {time} - New Procedure Created - {procedure_full_id} - {title}",
         "body_template": "---"
       },
       "project": {

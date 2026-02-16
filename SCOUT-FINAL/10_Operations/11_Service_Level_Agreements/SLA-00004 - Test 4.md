@@ -1,17 +1,17 @@
 ---
-entity_type: sla
+entity_type: "sla"
 
 # Identity
-sla_id: ""                             # e.g., SLA-00001
-sla_title: ""                          # e.g., "MDR SLA - Vendor X"
+sla_id: "SLA-00004"
+sla_title: "Test 4"
 sla_version: ""                        # e.g., 1.0
-sla_status: "draft"                    # draft | active | suspended | retired
-sla_type: "vendor"                     # internal | vendor | customer | regulatory | other
+sla_status: "Draft"
+sla_type: "Internal"
 
 # Ownership & Stakeholders
-sla_owner_primary: ""                  # e.g., "SecOps Manager"
+sla_owner_primary: "YOUR NAME"
 sla_owner_secondary: ""
-sla_owning_team: ""                    # e.g., "Security Operations"
+sla_owning_team: ""
 sla_stakeholders: []                   # e.g., ["IT Ops","GRC","Vendor Mgmt"]
 
 # Parties
@@ -26,7 +26,7 @@ sla_third_parties: []                  # e.g., ["MSSP Subcontractor Y"]
 # Scope
 sla_service_name: ""                   # e.g., "Managed Detection and Response"
 sla_service_category: "security"       # security | it_operations | identity | network | cloud | application | business_services | other
-sla_service_description: ""            # 1-paragraph description
+sla_service_description: "Test description"
 
 sla_in_scope: []                       # strings
 sla_out_of_scope: []                   # strings
@@ -39,8 +39,8 @@ sla_supported_platforms: []            # e.g., ["Windows","M365","AWS","Okta"]
 sla_dependencies: []                   # e.g., ["SIEM","EDR","Ticketing"]
 
 # Term & Governance
-sla_effective_date: ""                 # YYYY-MM-DD
-sla_expiration_date: ""                # YYYY-MM-DD
+sla_effective_date: "2026-02-15"
+sla_expiration_date: "2027-02-15"
 sla_renewal_terms: ""                  # e.g., "Auto-renews annually..."
 sla_review_cadence: "quarterly"        # quarterly | semi_annual | annual | ad_hoc
 sla_termination_notice_days: 30
@@ -156,10 +156,10 @@ related_assets: []
 related_controls: []
 
 # Admin
-tags: ["sla"]
-tlp_classification: "TLP:GREEN"        # TLP:CLEAR | TLP:GREEN | TLP:AMBER | TLP:RED
-created: ""
-updated: ""
+tags: ""
+tlp_classification: "TLP:CLEAR"
+created: "2026-02-15 15:39:35"
+updated: "2026-02-15 15:40:06"
 banner: 99_Attachments/SCOUT_Obsidian_Banner.png
 banner-display: contain
 banner-repeat: false
@@ -167,14 +167,14 @@ banner-height: 100
 content-start: 101
 ---
 
-# Service Level Agreement (SLA): {{sla_title}}
+# Service Level Agreement (SLA): Test 4
 
 ## Overview
-- **SLA ID:** {{sla_id}}
-- **Type / Status:** {{sla_type}} / {{sla_status}}
-- **Version:** 0.1
-- **Effective → Expiration:** {{sla_effective_date}} → {{sla_expiration_date}}
-- **Owner / Team:** {{sla_owner_primary}} / 
+- **SLA ID:** SLA-00004
+- **Type / Status:** Internal / Draft
+- **Version:** {{sla_version}}
+- **Effective → Expiration:** 2026-02-15 → 2027-02-15
+- **Owner / Team:** YOUR NAME / 
 
 ## Parties
 - **Provider (Contact):**  
@@ -183,7 +183,7 @@ content-start: 101
 
 ## Scope
 ### Service Description
-{{sla_service_description}}
+Test description
 
 ### In Scope
 
@@ -295,8 +295,8 @@ content-start: 101
 
 ---
 ## Activity Log
-- **Created:** {{created}}
-- **Updated:** {{updated}}
+- **Created:** 2026-02-15 15:39:35
+- **Updated:** 2026-02-15 15:40:06
 
 ## Notes
 -

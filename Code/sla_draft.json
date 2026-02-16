@@ -1,14 +1,17 @@
 {
-  "sla_id": "00003",
-  "sla_title": "Test 2",
+  "sla_id": "00005",
+  "sla_title": "Test",
   "sla_status": "Draft",
   "sla_type": "Internal",
   "sla_owner_primary": "YOUR NAME",
   "sla_owning_team": "",
   "sla_provider_contact": "",
   "sla_customer_contact": "",
+  "sla_effective_date": "2026-02-15 00:00:00",
+  "sla_expiration_date": "2027-02-15 00:00:00",
   "tags": "",
   "tlp_classification": "TLP:CLEAR",
-  "created": "2026-01-18 06:39:21",
-  "updated": "2026-01-18 06:39:31"
+  "created": "2026-02-15 17:01:24",
+  "updated": "2026-02-15 17:01:48",
+  "sla_service_description": "Test description"
 }

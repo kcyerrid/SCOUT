@@ -1,11 +1,11 @@
 {
-  "how_to_id": "0001",
-  "title": "Test",
+  "how_to_id": "00002",
+  "title": "Test How To",
   "owner": "YOUR NAME",
   "status": "Draft",
   "tlp_classification": "TLP:CLEAR",
   "tags": "",
-  "created": "2026-01-18 07:01:03",
-  "updated": "2026-01-18 07:01:03",
+  "created": "2026-02-15 21:16:07",
+  "updated": "2026-02-15 21:16:07",
   "open_after_save": true
 }

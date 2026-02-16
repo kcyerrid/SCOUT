@@ -1,17 +1,17 @@
 ---
-entity_type: sla
+entity_type: "sla"
 
 # Identity
-sla_id: ""                             # e.g., SLA-00001
-sla_title: ""                          # e.g., "MDR SLA - Vendor X"
+sla_id: "SLA-00001"
+sla_title: "Test SLA"
 sla_version: ""                        # e.g., 1.0
-sla_status: "draft"                    # draft | active | suspended | retired
-sla_type: "vendor"                     # internal | vendor | customer | regulatory | other
+sla_status: "Draft"
+sla_type: "Internal"
 
 # Ownership & Stakeholders
-sla_owner_primary: ""                  # e.g., "SecOps Manager"
+sla_owner_primary: "YOUR NAME"
 sla_owner_secondary: ""
-sla_owning_team: ""                    # e.g., "Security Operations"
+sla_owning_team: ""
 sla_stakeholders: []                   # e.g., ["IT Ops","GRC","Vendor Mgmt"]
 
 # Parties
@@ -156,10 +156,10 @@ related_assets: []
 related_controls: []
 
 # Admin
-tags: ["sla"]
-tlp_classification: "TLP:GREEN"        # TLP:CLEAR | TLP:GREEN | TLP:AMBER | TLP:RED
-created: ""
-updated: ""
+tags: ""
+tlp_classification: "TLP:CLEAR"
+created: "2026-02-15 14:54:21"
+updated: "2026-02-15 14:55:17"
 banner: 99_Attachments/SCOUT_Obsidian_Banner.png
 banner-display: contain
 banner-repeat: false
@@ -167,136 +167,176 @@ banner-height: 100
 content-start: 101
 ---
 
-# Service Level Agreement (SLA): {{sla_title}}
+# Service Level Agreement (SLA): {{title}}
 
 ## Overview
-- **SLA ID:** {{sla_id}}
-- **Type / Status:** {{sla_type}} / {{sla_status}}
-- **Version:** 0.1
-- **Effective → Expiration:** {{sla_effective_date}} → {{sla_expiration_date}}
-- **Owner / Team:** {{sla_owner_primary}} / 
+- **SLA ID:** <% tp.frontmatter.sla_id %>
+- **Type / Status:** <% tp.frontmatter.sla_type %> / <% tp.frontmatter.sla_status %>
+- **Version:** <% tp.frontmatter.sla_version %>
+- **Effective → Expiration:** <% tp.frontmatter.sla_effective_date %> → <% tp.frontmatter.sla_expiration_date %>
+- **Owner / Team:** <% tp.frontmatter.sla_owner_primary %> / <% tp.frontmatter.sla_owning_team %>
 
 ## Parties
-- **Provider (Contact):**  
-- **Customer (Contact):** 
-- **Third Parties:** 
+- **Provider:** <% tp.frontmatter.sla_provider_org %> (Contact: <% tp.frontmatter.sla_provider_contact %>)
+- **Customer:** <% tp.frontmatter.sla_customer_org %> (Contact: <% tp.frontmatter.sla_customer_contact %>)
+- **Third Parties:** <% tp.frontmatter.sla_third_parties %>
 
 ## Scope
 ### Service Description
-{{sla_service_description}}
+<% tp.frontmatter.sla_service_description %>
 
 ### In Scope
-
+<%*
+const inScope = tp.frontmatter.sla_in_scope || [];
+tR += inScope.length ? inScope.map(x => `- ${x}`).join("\n") : "- (not specified)";
+%>
 
 ### Out of Scope
-
+<%*
+const outScope = tp.frontmatter.sla_out_of_scope || [];
+tR += outScope.length ? outScope.map(x => `- ${x}`).join("\n") : "- (not specified)";
+%>
 
 ### Coverage
-- **Coverage Model:** 
-- **Timezone:** 
-- **Business Hours:** 
+- **Coverage Model:** <% tp.frontmatter.sla_coverage_model %>
+- **Timezone:** <% tp.frontmatter.sla_timezone %>
+- **Business Hours:** <% tp.frontmatter.sla_business_hours %>
 
 ### Dependencies
-
+<%*
+const deps = tp.frontmatter.sla_dependencies || [];
+tR += deps.length ? deps.map(x => `- ${x}`).join("\n") : "- (not specified)";
+%>
 
 ## Service Level Objectives (SLOs)
 ### Availability
-- **Target:** 
-- **Window:** 
-- **Method:** 
+- **Target:** <% tp.frontmatter.sla_availability_target_percent %>%
+- **Window:** <% tp.frontmatter.sla_availability_window %>
+- **Method:** <% tp.frontmatter.sla_availability_method %>
 
 **Exclusions**
-
+<%*
+const ex = tp.frontmatter.sla_availability_exclusions || [];
+tR += ex.length ? ex.map(x => `- ${x}`).join("\n") : "- (not specified)";
+%>
 
 ### Performance
 > This template models performance SLOs using aligned arrays:
 > `sla_perf_metrics[n]` maps to `sla_perf_targets[n]`, `sla_perf_windows[n]`, etc.
 
+<%*
+const m = tp.frontmatter.sla_perf_metrics || [];
+const t = tp.frontmatter.sla_perf_targets || [];
+const w = tp.frontmatter.sla_perf_windows || [];
+const md = tp.frontmatter.sla_perf_methods || [];
+const ex2 = tp.frontmatter.sla_perf_exclusions || [];
+
+if (!m.length) {
+  tR += "- (not specified)\n";
+} else {
+  for (let i = 0; i < m.length; i++) {
+    tR += `- **${m[i]}**\n`;
+    tR += `  - Target: ${t[i] || ""}\n`;
+    tR += `  - Window: ${w[i] || ""}\n`;
+    tR += `  - Method: ${md[i] || ""}\n`;
+    if (ex2[i]) tR += `  - Exclusions: ${ex2[i]}\n`;
+  }
+}
+%>
 
 ### Support Model
-- **Channels:** 
-- **Ticketing:** 
+- **Channels:** <% tp.frontmatter.sla_support_channels %>
+- **Ticketing:** <% tp.frontmatter.sla_ticketing_system %>
 
 ### RTO / RPO
-- **RTO:** 
-- **RPO:** 
+- **RTO:** <% tp.frontmatter.sla_rto %>
+- **RPO:** <% tp.frontmatter.sla_rpo %>
 
 ## Incident Management
 ### Severity Definitions
-- **Sev1:** 
-- **Sev2:** 
-- **Sev3:** 
-- **Sev4:** 
-- **Reference:** 
+- **Sev1:** <% tp.frontmatter.sla_sev1_definition %>
+- **Sev2:** <% tp.frontmatter.sla_sev2_definition %>
+- **Sev3:** <% tp.frontmatter.sla_sev3_definition %>
+- **Sev4:** <% tp.frontmatter.sla_sev4_definition %>
+- **Reference:** <% tp.frontmatter.sla_severity_reference_note %>
 
 ### Response Targets
 | Severity | Acknowledge | Engage | Restore/Resolve |
-| -------- | ----------: | -----: | --------------: |
-| Sev1     |             |        |                 |
-| Sev2     |             |        |                 |
-| Sev3     |             |        |                 |
-| Sev4     |             |        |                 |
+|---|---:|---:|---:|
+| Sev1 | <% tp.frontmatter.sla_sev1_acknowledge %> | <% tp.frontmatter.sla_sev1_engage %> | <% tp.frontmatter.sla_sev1_restore %> |
+| Sev2 | <% tp.frontmatter.sla_sev2_acknowledge %> | <% tp.frontmatter.sla_sev2_engage %> | <% tp.frontmatter.sla_sev2_restore %> |
+| Sev3 | <% tp.frontmatter.sla_sev3_acknowledge %> | <% tp.frontmatter.sla_sev3_engage %> | <% tp.frontmatter.sla_sev3_restore %> |
+| Sev4 | <% tp.frontmatter.sla_sev4_acknowledge %> | <% tp.frontmatter.sla_sev4_engage %> | <% tp.frontmatter.sla_sev4_restore %> |
 
 ### Escalation & Communications
-- **Escalation Tiers:** 
-- **Escalation Contacts:** 
-- **Executive Notification:** 
-- **Executive Criteria:** 
-- **Status Update Cadence:** 
-- **PIR Required / Due:**   
+- **Escalation Tiers:** <% tp.frontmatter.sla_escalation_tiers %>
+- **Escalation Contacts:** <% tp.frontmatter.sla_escalation_contacts %>
+- **Executive Notification:** <% tp.frontmatter.sla_exec_notification_required %>
+- **Executive Criteria:** <% tp.frontmatter.sla_exec_notification_criteria %>
+- **Status Update Cadence:** <% tp.frontmatter.sla_status_update_cadence %>
+- **PIR Required / Due:** <% tp.frontmatter.sla_pir_required %> / <% tp.frontmatter.sla_pir_due_within_days %> days
 
 ## Change Management
-- **Maintenance Windows:** 
-- **Notice Period:** 
-- **Emergency Process:** 
-- **Customer Approval Required:** 
+- **Maintenance Windows:** <% tp.frontmatter.sla_maintenance_windows %>
+- **Notice Period:** <% tp.frontmatter.sla_change_notice_period_days %> days
+- **Emergency Process:** <% tp.frontmatter.sla_emergency_change_process %>
+- **Customer Approval Required:** <% tp.frontmatter.sla_customer_approval_required %>
 
 ## Metrics & Reporting
-- **Cadence:** 
-- **Standard Reports:** 
-- **KPIs:** 
-- **Dashboards:** 
+- **Cadence:** <% tp.frontmatter.sla_reporting_cadence %>
+- **Standard Reports:** <% tp.frontmatter.sla_standard_reports %>
+- **KPIs:** <% tp.frontmatter.sla_kpis %>
+- **Dashboards:** <% tp.frontmatter.sla_dashboards %>
 
 ## Security & Compliance
-- **Classification:** 
-- **Regulated Data:** 
-- **Frameworks:** 
-- **Breach Notification (hrs):** 
+- **Classification:** <% tp.frontmatter.sla_data_classification %>
+- **Regulated Data:** <% tp.frontmatter.sla_regulated_data %>
+- **Frameworks:** <% tp.frontmatter.sla_compliance_frameworks %>
+- **Breach Notification (hrs):** <% tp.frontmatter.sla_breach_notify_window_hours %>
 
 ## Financials
-- **Pricing Model:** 
-- **Service Credits Eligible:** 
-- **Service Credits Terms:** 
+- **Pricing Model:** <% tp.frontmatter.sla_pricing_model %>
+- **Service Credits Eligible:** <% tp.frontmatter.sla_service_credits_eligible %>
+- **Service Credits Terms:** <% tp.frontmatter.sla_service_credits_terms %>
 
 ## Risks, Assumptions, Exceptions
 ### Known Risks
-
+<%*
+const risks = tp.frontmatter.sla_known_risks || [];
+tR += risks.length ? risks.map(x => `- ${x}`).join("\n") : "- (not specified)";
+%>
 
 ### Assumptions
-
+<%*
+const asm = tp.frontmatter.sla_assumptions || [];
+tR += asm.length ? asm.map(x => `- ${x}`).join("\n") : "- (not specified)";
+%>
 
 ### Exceptions
-
+<%*
+const exc = tp.frontmatter.sla_exceptions || [];
+tR += exc.length ? exc.map(x => `- ${x}`).join("\n") : "- (none)";
+%>
 
 ## Documentation & References
-- **Master Agreement / MSA:** 
-- **Exhibits / Appendices:** 
-- **Runbooks:** 
-- **Playbooks:** 
-- **Knowledge Base:** 
+- **Master Agreement / MSA:** <% tp.frontmatter.sla_master_agreement_location %>
+- **Exhibits / Appendices:** <% tp.frontmatter.sla_exhibits_appendices %>
+- **Runbooks:** <% tp.frontmatter.sla_runbooks %>
+- **Playbooks:** <% tp.frontmatter.sla_playbooks %>
+- **Knowledge Base:** <% tp.frontmatter.sla_kb_links %>
 
 ## Relationships
-- **Related Vendors:** 
-- **Related Services:** 
-- **Related ITIDs:** 
-- **Related Incidents:** 
-- **Related Assets:** 
-- **Related Controls:** 
+- **Related Vendors:** <% tp.frontmatter.related_vendors %>
+- **Related Services:** <% tp.frontmatter.related_services %>
+- **Related ITIDs:** <% tp.frontmatter.related_itids %>
+- **Related Incidents:** <% tp.frontmatter.related_incidents %>
+- **Related Assets:** <% tp.frontmatter.related_assets %>
+- **Related Controls:** <% tp.frontmatter.related_controls %>
 
 ---
 ## Activity Log
-- **Created:** {{created}}
-- **Updated:** {{updated}}
+- **Created:** <% tp.frontmatter.created %>
+- **Updated:** <% tp.frontmatter.updated %>
 
 ## Notes
 -

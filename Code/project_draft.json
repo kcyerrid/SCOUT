@@ -1,12 +1,12 @@
 {
-  "project_id": "PRJ-2026-0002",
-  "project_name": "Test Project 2",
+  "project_id": "PRJ-2026-0001",
+  "project_name": "Test Project",
   "project_owner": "YOUR NAME",
   "project_status": "planned",
   "project_priority": "medium",
-  "start_date": "2026-01-30",
-  "end_date": "2026-04-01",
+  "start_date": "2026-02-15",
+  "end_date": "2026-06-01",
   "tags": "",
-  "summary": "Test summary",
+  "summary": "Build something",
   "sequential_mode": true
 }

@@ -2,17 +2,17 @@
 entity_type: incident
 cssclass: incident-properties-collapsed
 incident_id: "INC-2026-000001"
-title: "Test"
+title: "Regression test of incident after procedure"
 incident_type: ""
 incident_subtype: ""
 severity: "low"
 priority:
 status: "new"
 tlp_classification: "TLP:GREEN"
-created_time: "2026-02-14 21:33:03"
-created: "2026-02-14 21:33:03"
-updated: "2026-02-14 21:33:15"
-detected_time: "2026-02-14 21:33:03"
+created_time: "2026-02-15 10:32:32"
+created: "2026-02-15 10:32:32"
+updated: "2026-02-15 10:32:57"
+detected_time: "2026-02-15 10:32:32"
 reported_time: ""
 triage_start_time: ""
 triage_end_time: ""
@@ -53,7 +53,7 @@ banner-repeat: false
 banner-height: 100
 content-start: 101
 ---
-# Incident: Test
+# Incident: Regression test of incident after procedure
 
 ## 1. Executive Summary
 Provide a concise overview of:
@@ -81,10 +81,8 @@ Summarize key timestamps:
 Highlight major delays or accelerations.
 
 ```chronos
-= [2026-02-14T21:33:03] Incident Created
-= [2026-02-14T21:34:31] Detection
-= [2026-02-14T21:36:52] Triage
-
+= [2026-02-15T10:32:32] Incident Created
+= [2099-12-31T23:59:59] CHRONOS_INSERT_1
 = [2099-12-31T23:59:59] CHRONOS_INSERT_2
 = [2099-12-31T23:59:59] CHRONOS_INSERT_3
 = [2099-12-31T23:59:59] CHRONOS_INSERT_4

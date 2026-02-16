@@ -436,6 +436,9 @@ def _ensure_keywords_schema(cfg: dict) -> dict:
 # ----------------------------
 # Shift log rules schema
 # ----------------------------
+# RULE: Every time a new entity is created, an entry MUST be appended to the daily note's
+# Shift Log. When adding a new entity type: 1) Add it to SHIFT_LOG_ENTITY_REGISTRY below,
+# 2) Call _log_shift_entry_from_launcher() in the entity creation flow.
 SHIFT_LOG_ENTITY_REGISTRY = {
     "incident": {
         "label": "Incident",
@@ -474,7 +477,7 @@ SHIFT_LOG_ENTITY_REGISTRY = {
         "date_field": "start_time",
         "id_keys": [],
         "title_keys": ["title"],
-        "header_template": "### {created_time} - New Meeting Created - {title} - {start_date} {start_time}",
+        "header_template": "### {created_time} - New Meeting Created - {title} - {start_datetime} - {end_datetime}",
         "body_template": "",
     },
     "playbook": {
@@ -490,7 +493,7 @@ SHIFT_LOG_ENTITY_REGISTRY = {
         "date_field": "created",
         "id_keys": ["procedure_id"],
         "title_keys": ["title"],
-        "header_template": "### {time} - New Procedure Created - {procedure_id} - {title}",
+        "header_template": "### {time} - New Procedure Created - {procedure_full_id} - {title}",
         "body_template": "",
     },
     "project": {
@@ -654,6 +657,7 @@ def _build_shift_log_tokens(
 
     created_date, created_time = _split_datetime(tokens.get("created", ""))
     start_date, start_time = _split_datetime(tokens.get("start_time", ""))
+    end_date, end_time = _split_datetime(tokens.get("end_time", ""))
 
     tokens["time"] = now_dt.strftime("%H:%M")
     tokens["date"] = now_dt.strftime("%Y-%m-%d")
@@ -665,12 +669,22 @@ def _build_shift_log_tokens(
     tokens["start_time"] = start_time or "00:00"
     tokens["start_datetime"] = f"{tokens['start_date']} {tokens['start_time']}"
 
+    tokens["end_date"] = end_date or tokens["start_date"] or tokens["date"]
+    tokens["end_time"] = end_time or "00:00"
+    tokens["end_datetime"] = f"{tokens['end_date']} {tokens['end_time']}"
+
+    tokens["meeting_start_date"] = tokens["start_datetime"]
+    tokens["meeting_end_date"] = tokens["end_datetime"]
+
     meta = SHIFT_LOG_ENTITY_REGISTRY.get(entity_type, {})
-    title_plain = tokens.get("title", "").strip() or _first_present(payload, meta.get("title_keys", []))
+    title_keys = meta.get("title_keys", [])
+    if not title_keys:
+        title_keys = ["title", "name", "title_plain"]
+    title_plain = tokens.get("title", "").strip() or _first_present(payload, title_keys)
     tokens["title_plain"] = title_plain
     tokens["title"] = title_plain
     tokens["entity_id"] = _first_present(payload, meta.get("id_keys", []))
-    tokens["label"] = meta.get("label", entity_type)
+    tokens["label"] = meta.get("label", entity_type.replace("_", " ").title())
     if entity_type == "mitre_ttp":
         tokens["ttp_id"] = tokens.get("subtechnique_id") or tokens.get("technique_id") or ""
     if entity_type == "ioc":
@@ -678,6 +692,10 @@ def _build_shift_log_tokens(
             tokens["title"] = tokens.get("value", "")
     if entity_type == "faq":
         tokens["faq_id"] = tokens.get("faq_id") or tokens.get("faq_ID") or ""
+    if entity_type == "procedure":
+        proc_id = tokens.get("procedure_id", "").strip()
+        year = now_dt.strftime("%Y")
+        tokens["procedure_full_id"] = f"PRC-{year}-{proc_id}" if proc_id else ""
 
     if note_path and vault_root:
         try:
@@ -708,21 +726,47 @@ def _format_shift_log_template(template: str, tokens: dict) -> str:
 
 
 def _append_shift_log_entry(cfg: dict, vault_root: Path, entity_type: str, payload: dict, note_path: Path | None) -> None:
+    """
+    Append a shift log entry to the daily note. REQUIRED: Every time a new entity is created,
+    an entry MUST be added to the daily note's Shift Log as a separate entry.
+    """
     rules = _ensure_shift_log_rules_schema(cfg)
     if not rules.get("enabled", True):
         return
     entity_rules = (rules.get("entities") or {}).get(entity_type, {})
-    if not entity_rules or not entity_rules.get("enabled", True):
+    # If entity type has explicit rules and is disabled, respect that
+    if entity_rules and not entity_rules.get("enabled", True):
         return
+    # Use fallback for new/unregistered entity types so we always log
+    use_fallback = not entity_rules
+    if use_fallback:
+        entity_rules = {
+            "date_field": "created",
+            "header_template": f"### {{time}} - New {{label}} Created - {{title}}",
+            "body_template": "",
+        }
 
     now_dt = datetime.now()
     date_field = (entity_rules.get("date_field") or "").strip() or "created"
     date_source = (payload or {}).get(date_field, "") or now_dt.strftime("%Y-%m-%d")
-    date_str, _ = _split_datetime(str(date_source))
-    if not date_str:
-        date_str = now_dt.strftime("%Y-%m-%d")
+    primary_date_str, _ = _split_datetime(str(date_source))
+    if not primary_date_str:
+        primary_date_str = now_dt.strftime("%Y-%m-%d")
 
-    # Resolve daily note path using config (supports custom folder/pattern)
+    # For meetings: REQUIRED - write to daily shift log on BOTH (1) day created and
+    # (2) day held. Creation entry on today; Meeting Scheduled entry on meeting start date.
+    # When same day, both entries go in the same daily note.
+    # Other entities: append only to primary date.
+    today_str = now_dt.strftime("%Y-%m-%d")
+    if entity_type == "meeting":
+        entries_to_append = [
+            (today_str, False),   # Creation entry
+            (primary_date_str, True),  # Meeting Scheduled entry
+        ]
+    else:
+        entries_to_append = [(primary_date_str, False)]
+
+    # Resolve daily note config
     try:
         app_dir = get_app_dir()
         tokens = build_tokens(app_dir, cfg)
@@ -736,63 +780,77 @@ def _append_shift_log_entry(cfg: dict, vault_root: Path, entity_type: str, paylo
     file_pattern = daily_cfg.get("file_pattern", "%Y-%m-%d")
     ext = daily_cfg.get("extension", ".md")
     apply_when = str(daily_cfg.get("apply_template_when", "missing")).strip()
-    create_if_missing = bool(daily_cfg.get("create_if_missing", False))
-
-    try:
-        dt_obj = datetime.strptime(date_str, "%Y-%m-%d")
-    except Exception:
-        dt_obj = now_dt
-    leaf = dt_obj.strftime(file_pattern) + ext
-    file_within_vault = f"{daily_root_rel.rstrip('/')}/{leaf}".replace("\\", "/")
-    daily_path = Path(vault_root) / Path(*file_within_vault.split("/"))
+    # If daily note exists: append to it. If not: create it for ALL entities using the standard template.
+    create_if_missing = True
 
     template_rel = str(daily_cfg.get("template_file_rel", "")).strip().replace("\\", "/")
     template_rel = expand_value(template_rel, tokens)
     template_abs = str(Path(vault_root) / Path(*template_rel.split("/"))) if template_rel else ""
 
-    try:
-        _ensure_daily_note_exists(str(daily_path), template_abs, apply_when, create_if_missing)
-    except Exception:
-        return
-    if not daily_path.exists():
-        return
-
     tokens = _build_shift_log_tokens(entity_type, payload or {}, now_dt=now_dt, vault_root=vault_root, note_path=note_path)
-    header = _format_shift_log_template(entity_rules.get("header_template", ""), tokens).strip()
     body = _format_shift_log_template(entity_rules.get("body_template", ""), tokens).strip()
-    block = header if not body else f"{header}\n{body}"
 
     marker = "<!-- SHIFT_NOTES_LOG -->"
     shift_heading = "## 2. Shift Notes (Chronological Log)"
-    content = daily_path.read_text(encoding="utf-8")
-    updated = content
 
-    if marker in content:
-        marker_idx = content.index(marker)
-        section_start = marker_idx + len(marker)
-        next_heading_idx = content.find("\n## ", section_start)
-        if next_heading_idx == -1:
-            next_heading_idx = len(content)
-        section_body = content[section_start:next_heading_idx].rstrip("\n")
-        insert = f"{section_body}\n{block}\n" if section_body.strip() else f"\n{block}\n"
-        updated = content[:section_start] + insert + content[next_heading_idx:]
-    elif shift_heading in content:
-        idx = content.index(shift_heading)
-        next_heading_idx = content.find("\n## ", idx + len(shift_heading))
-        if next_heading_idx == -1:
-            next_heading_idx = len(content)
-        section_body = content[idx + len(shift_heading):next_heading_idx].rstrip("\n")
-        insert = f"{section_body}\n{block}\n" if section_body.strip() else f"\n{block}\n"
-        updated = content[: idx + len(shift_heading)] + insert + content[next_heading_idx:]
-    else:
-        updated = content + f"\n\n{block}\n"
+    meeting_scheduled_header = "### {meeting_start_date} - Meeting Scheduled - {title} - {meeting_start_date} - {meeting_end_date}"
 
-    if updated != content:
-        daily_path.write_text(updated, encoding="utf-8")
+    for date_str, use_scheduled_header in entries_to_append:
+        if entity_type == "meeting" and use_scheduled_header:
+            header = _format_shift_log_template(meeting_scheduled_header, tokens).strip()
+        else:
+            header = _format_shift_log_template(entity_rules.get("header_template", ""), tokens).strip()
+        block = header if not body else f"{header}\n{body}"
+
+        try:
+            dt_obj = datetime.strptime(date_str, "%Y-%m-%d")
+        except Exception:
+            dt_obj = now_dt
+        leaf = dt_obj.strftime(file_pattern) + ext
+        file_within_vault = f"{daily_root_rel.rstrip('/')}/{leaf}".replace("\\", "/")
+        daily_path = Path(vault_root) / Path(*file_within_vault.split("/"))
+
+        try:
+            _ensure_daily_note_exists(str(daily_path), template_abs, apply_when, create_if_missing)
+        except Exception:
+            continue
+        if not daily_path.exists():
+            continue
+
+        content = daily_path.read_text(encoding="utf-8")
+        updated = content
+
+        if marker in content:
+            marker_idx = content.index(marker)
+            section_start = marker_idx + len(marker)
+            next_heading_idx = content.find("\n## ", section_start)
+            if next_heading_idx == -1:
+                next_heading_idx = len(content)
+            section_body = content[section_start:next_heading_idx].rstrip("\n")
+            insert = f"{section_body}\n{block}\n" if section_body.strip() else f"\n{block}\n"
+            updated = content[:section_start] + insert + content[next_heading_idx:]
+        elif shift_heading in content:
+            idx = content.index(shift_heading)
+            next_heading_idx = content.find("\n## ", idx + len(shift_heading))
+            if next_heading_idx == -1:
+                next_heading_idx = len(content)
+            section_body = content[idx + len(shift_heading):next_heading_idx].rstrip("\n")
+            insert = f"{section_body}\n{block}\n" if section_body.strip() else f"\n{block}\n"
+            updated = content[: idx + len(shift_heading)] + insert + content[next_heading_idx:]
+        else:
+            updated = content + f"\n\n{block}\n"
+
+        if updated != content:
+            daily_path.write_text(updated, encoding="utf-8")
 
 
 def _log_shift_entry_from_launcher(master, vault_root: Path, entity_type: str, payload: dict, note_path: Path | None) -> None:
-    if not note_path or not vault_root:
+    """
+    Append a shift log entry to the Daily Note. REQUIRED: Every entity creation MUST call this
+    so an entry is added to the daily note's Shift Log as a separate entry.
+    Requires vault_root; note_path is optional (for links).
+    """
+    if not vault_root:
         return
     cfg = getattr(master, "cfg", {}) or {}
     _append_shift_log_entry(cfg, vault_root, entity_type, payload, note_path)
@@ -11348,17 +11406,29 @@ def _append_daily_shift_notes_meeting(vault_root: Path, meeting: dict) -> None:
     """
     Append a Shift Notes event line to the daily journal note for the meeting date.
     Uses the SHIFT_NOTES_LOG marker when available; falls back to Shift Notes header.
+    Format: Timestamp: Meeting Title - Meeting Start Date - Meeting End Date
     """
     try:
         start_raw = (meeting or {}).get("start_time", "").strip()
+        end_raw = (meeting or {}).get("end_time", "").strip()
         created_time = datetime.now().strftime("%H:%M")
         if start_raw:
             parts = start_raw.split()
             date_str = parts[0]
-            start_time = parts[1][:5] if len(parts) > 1 else "00:00"
+            start_datetime = f"{parts[0]} {parts[1][:5]}" if len(parts) > 1 else f"{parts[0]} 00:00"
         else:
             date_str = datetime.now().strftime("%Y-%m-%d")
-            start_time = "00:00"
+            start_datetime = f"{date_str} 00:00"
+        if end_raw:
+            end_parts = end_raw.split()
+            if len(end_parts) >= 2:
+                end_datetime = f"{end_parts[0]} {end_parts[1][:5]}"
+            elif end_parts:
+                end_datetime = f"{date_str} {end_parts[0][:5]}"
+            else:
+                end_datetime = start_datetime
+        else:
+            end_datetime = start_datetime
 
         year = date_str.split("-")[0]
         month = date_str.split("-")[1]
@@ -11375,7 +11445,7 @@ def _append_daily_shift_notes_meeting(vault_root: Path, meeting: dict) -> None:
             return
 
         title = (meeting or {}).get("title", "").strip() or "Untitled Meeting"
-        header_line = f"### {created_time} - New Meeting Created - {title} - {date_str} {start_time}"
+        header_line = f"### {created_time} - {title} - {start_datetime} - {end_datetime}"
 
         marker = "<!-- SHIFT_NOTES_LOG -->"
         shift_heading = "## 2. Shift Notes (Chronological Log)"
@@ -11793,25 +11863,24 @@ class IncidentIntakeWindow(tk.Toplevel):
         # 2) Optional Obsidian stub creation
         note_path = None
         wants_stub = bool(getattr(self, "create_stub_var", tk.BooleanVar(value=False)).get())
-        if wants_stub:
-            if self.vault_root is None:
+        if wants_stub and self.vault_root is not None:
+            try:
+                note_path = create_obsidian_incident_stub(self.vault_root, data)
+            except Exception as e:
                 messagebox.showwarning(
                     "Incident Intake",
-                    "Draft saved, but Obsidian vault root could not be resolved.\nSet paths.SCOUT_ROOT (or paths.VAULT_ROOT / obsidian_vault_path) in config.json.",
+                    f"Draft saved, but failed to create Obsidian staging note:\n{e}",
                     parent=self,
                 )
-            else:
-                try:
-                    note_path = create_obsidian_incident_stub(self.vault_root, data)
-                    _log_shift_entry_from_launcher(self.master, self.vault_root, "incident", data, note_path)
-                except Exception as e:
-                    messagebox.showwarning(
-                        "Incident Intake",
-                        f"Draft saved, but failed to create Obsidian staging note:\n{e}",
-                        parent=self,
-                    )
 
-        # 3) Hand off payload
+        # 3) Append to Daily Note Shift Log (always when vault_root available)
+        if self.vault_root is not None:
+            try:
+                _log_shift_entry_from_launcher(self.master, self.vault_root, "incident", data, note_path)
+            except Exception:
+                pass
+
+        # 4) Hand off payload
         payload = dict(data)
         payload["draft_path"] = str(draft_path)
         payload["open_note"] = bool(getattr(self, "open_note_var", tk.BooleanVar(value=True)).get())
@@ -12115,6 +12184,27 @@ def _merge_project_frontmatter(template_text: str, project: dict) -> str:
     return "".join(new_lines)
 
 
+def _resolve_goal_template(vault_root: Path) -> Path | None:
+    """Resolve Goal Template: 02_Operations first, then 01_Entities."""
+    primary = vault_root / "00_System" / "00_Templates" / "02_Operations" / "Goal Template.md"
+    if primary.exists():
+        return primary
+    fallback = vault_root / "00_System" / "00_Templates" / "01_Entities" / "Goal Template.md"
+    if fallback.exists():
+        return fallback
+    folder = vault_root / "00_System" / "00_Templates" / "02_Operations"
+    if folder.exists():
+        for p in sorted(folder.glob("*.md")):
+            if "goal" in p.name.lower() and "template" in p.name.lower():
+                return p
+    folder = vault_root / "00_System" / "00_Templates" / "01_Entities"
+    if folder.exists():
+        for p in sorted(folder.glob("*.md")):
+            if "goal" in p.name.lower() and "template" in p.name.lower():
+                return p
+    return None
+
+
 def create_obsidian_goal_note(vault_root: Path, goal: dict) -> Path:
     """Create a Goal note under 10_Operations/15_Goals using the Goal template when available."""
     base_folder = vault_root / "10_Operations" / "15_Goals"
@@ -12159,7 +12249,7 @@ def create_obsidian_goal_note(vault_root: Path, goal: dict) -> Path:
     slug = _safe_slug(" - ".join(name_bits)) or "Goal"
     note_path = base_folder / f"{slug}.md"
 
-    tpl_path = vault_root / "00_System" / "00_Templates" / "02_Operations" / "Goal Template.md"
+    tpl_path = _resolve_goal_template(vault_root)
 
     token_map = {
         "goal_id": goal_id,
@@ -12169,7 +12259,10 @@ def create_obsidian_goal_note(vault_root: Path, goal: dict) -> Path:
         "area": area,
         "start_date": start_date,
         "end_date": end_date,
+        "target_date": end_date,
         "cadence": cadence,
+        "review_cadence": cadence or "quarterly",
+        "specific_outcome": title,
         "success_metric": success_metric,
         "created": created,
         "updated": updated,
@@ -12195,7 +12288,7 @@ def create_obsidian_goal_note(vault_root: Path, goal: dict) -> Path:
         "updated": updated,
     }
 
-    if tpl_path.exists():
+    if tpl_path and tpl_path.exists():
         tpl_text = _read_text_safe(tpl_path)
         for k, v in token_map.items():
             tpl_text = tpl_text.replace(f"{{{{{k}}}}}", v)
@@ -12427,7 +12520,7 @@ def _parse_datetime_for_picker(value: str) -> tuple[date, int, int, int]:
     value = (value or "").strip()
     now = datetime.now()
     default_date = now.date()
-    default_h, default_m, default_s = now.hour, now.minute, now.second
+    default_h, default_m, default_s = now.hour, now.minute, 0  # seconds default to 00
     if not value:
         return default_date, default_h, default_m, default_s
     parts = value.split()
@@ -12435,7 +12528,7 @@ def _parse_datetime_for_picker(value: str) -> tuple[date, int, int, int]:
         d = datetime.strptime(parts[0], "%Y-%m-%d").date()
     except (ValueError, IndexError):
         d = default_date
-    h, m, s = default_h, default_m, default_s
+    h, m, s = default_h, default_m, 0  # seconds default to 00
     if len(parts) >= 2:
         tparts = parts[1].split(":")
         if len(tparts) >= 1 and tparts[0].isdigit():
@@ -12449,6 +12542,14 @@ def _parse_datetime_for_picker(value: str) -> tuple[date, int, int, int]:
 
 def _format_datetime_from_picker(d: date, h: int, m: int, s: int) -> str:
     return f"{d.isoformat()} {h:02d}:{m:02d}:{s:02d}"
+
+
+_MEETING_MINUTES = (0, 10, 15, 20, 30, 40, 45, 50)
+
+
+def _round_to_meeting_minute(m: int) -> int:
+    """Round minute to nearest of 00, 10, 15, 20, 30, 40, 45, 50."""
+    return min(_MEETING_MINUTES, key=lambda x: abs(x - min(59, max(0, m))))
 
 
 class MeetingIntakeWindow(tk.Toplevel):
@@ -12573,26 +12674,27 @@ class MeetingIntakeWindow(tk.Toplevel):
                 ent = tk.Entry(picker_row, bg="#1B1B1B", fg="#FFFFFF", relief="flat", width=12)
                 ent.insert(0, d.isoformat())
                 ent.pack(side="left", padx=(0, 8))
+            m = _round_to_meeting_minute(m)
             hour_var = tk.StringVar(value=str(h))
-            min_var = tk.StringVar(value=str(m))
-            sec_var = tk.StringVar(value=str(s))
-            for var, (lo, hi, w) in [
-                (hour_var, (0, 23, 3)),
-                (min_var, (0, 59, 3)),
-                (sec_var, (0, 59, 3)),
-            ]:
-                sp = tk.Spinbox(
-                    picker_row, from_=lo, to=hi, textvariable=var, width=w,
-                    bg="#1B1B1B", fg="#FFFFFF", insertbackground="#FFFFFF", relief="flat",
-                    buttonbackground="#1B1B1B",
-                )
-                sp.pack(side="left", padx=(0, 4))
+            min_var = tk.StringVar(value=f"{m:02d}")
+            sp = tk.Spinbox(
+                picker_row, from_=0, to=23, increment=1, textvariable=hour_var, width=3,
+                bg="#1B1B1B", fg="#FFFFFF", insertbackground="#FFFFFF", relief="flat",
+                buttonbackground="#1B1B1B",
+            )
+            sp.pack(side="left", padx=(0, 4))
+            min_values = tuple(f"{x:02d}" for x in _MEETING_MINUTES)
+            min_sp = tk.Spinbox(
+                picker_row, values=min_values, textvariable=min_var, width=3,
+                bg="#1B1B1B", fg="#FFFFFF", insertbackground="#FFFFFF", relief="flat",
+                buttonbackground="#1B1B1B",
+            )
+            min_sp.pack(side="left", padx=(0, 4))
             self._dt_pickers[key] = {
                 "date_entry": date_entry,
                 "fallback_entry": ent if DateEntry is None else None,
                 "hour_var": hour_var,
                 "min_var": min_var,
-                "sec_var": sec_var,
             }
 
         add_entry(left, "Title", self.vars["title"])
@@ -12658,8 +12760,9 @@ class MeetingIntakeWindow(tk.Toplevel):
             else:
                 return self.vars[key].get().strip()
             h = min(23, max(0, int(p["hour_var"].get() or 0)))
-            m = min(59, max(0, int(p["min_var"].get() or 0)))
-            s = min(59, max(0, int(p["sec_var"].get() or 0)))
+            m_raw = min(59, max(0, int(p["min_var"].get() or 0)))
+            m = _round_to_meeting_minute(m_raw)
+            s = 0  # seconds always 00 for meeting times
             return _format_datetime_from_picker(d, h, m, s)
         except (ValueError, TypeError):
             return self.vars[key].get().strip()
@@ -12670,14 +12773,14 @@ class MeetingIntakeWindow(tk.Toplevel):
             self.vars[key].set(value)
             return
         d, h, m, s = _parse_datetime_for_picker(value)
+        m = _round_to_meeting_minute(m)
         if p["date_entry"] is not None:
             p["date_entry"].set_date(d)
         elif p.get("fallback_entry"):
             p["fallback_entry"].delete(0, "end")
             p["fallback_entry"].insert(0, d.isoformat())
         p["hour_var"].set(str(h))
-        p["min_var"].set(str(m))
-        p["sec_var"].set(str(s))
+        p["min_var"].set(f"{m:02d}")
 
     def _collect(self) -> dict:
         data = {k: v.get().strip() for k, v in self.vars.items()}
@@ -12706,15 +12809,41 @@ class MeetingIntakeWindow(tk.Toplevel):
             messagebox.showwarning("Meeting Intake", "Title is required.", parent=self)
             return
 
+        start_raw = (data.get("start_time") or "").strip()
+        end_raw = (data.get("end_time") or "").strip()
+        if start_raw and end_raw:
+            start_dt = end_dt = None
+            for fmt in ("%Y-%m-%d %H:%M:%S", "%Y-%m-%d %H:%M", "%Y-%m-%d"):
+                try:
+                    start_dt = datetime.strptime(start_raw, fmt)
+                    end_dt = datetime.strptime(end_raw, fmt)
+                    break
+                except ValueError:
+                    continue
+            if start_dt is not None and end_dt is not None and end_dt <= start_dt:
+                messagebox.showwarning(
+                    "Meeting Intake",
+                    "End date/time must be later than start date/time.",
+                    parent=self,
+                )
+                return
+
         save_meeting_draft(self.app_dir, data)
 
         note_path = None
         if self.vault_root is not None:
             try:
                 note_path = create_obsidian_meeting_note(self.vault_root, data)
-                _log_shift_entry_from_launcher(self.master, self.vault_root, "meeting", data, note_path)
             except Exception as e:
                 messagebox.showwarning("Meeting Intake", f"Saved draft, but failed to create meeting note:\n{e}", parent=self)
+            try:
+                _log_shift_entry_from_launcher(self.master, self.vault_root, "meeting", data, note_path)
+            except Exception as e:
+                messagebox.showwarning(
+                    "Shift Log",
+                    f"Meeting note created, but failed to add entry to daily shift log:\n{e}",
+                    parent=self,
+                )
 
         if note_path is not None and self.open_note_var.get():
             try:
@@ -13033,18 +13162,26 @@ class ProjectIntakeWindow(tk.Toplevel):
         self.summary_var = tk.StringVar()
         self.sequential_mode_var = tk.BooleanVar(value=False)
 
-        def add_entry(parent, label, var):
+        def add_entry(parent, label, var, required=False):
             row = tk.Frame(parent, bg="#111111")
             row.pack(fill="x", pady=6)
-            tk.Label(row, text=label, fg="#DDDDDD", bg="#111111", font=("Segoe UI", 10)).pack(anchor="w")
+            lbl_row = tk.Frame(row, bg="#111111")
+            lbl_row.pack(anchor="w")
+            tk.Label(lbl_row, text=label, fg="#DDDDDD", bg="#111111", font=("Segoe UI", 10)).pack(side="left")
+            if required:
+                tk.Label(lbl_row, text=" *", fg="#E05A5A", bg="#111111", font=("Segoe UI", 10)).pack(side="left")
             ent = tk.Entry(row, textvariable=var, bg="#1B1B1B", fg="#FFFFFF", insertbackground="#FFFFFF", relief="flat")
             ent.pack(fill="x", ipady=6)
             return ent
 
-        def add_combo(parent, label, var, values):
+        def add_combo(parent, label, var, values, required=False):
             row = tk.Frame(parent, bg="#111111")
             row.pack(fill="x", pady=6)
-            tk.Label(row, text=label, fg="#DDDDDD", bg="#111111", font=("Segoe UI", 10)).pack(anchor="w")
+            lbl_row = tk.Frame(row, bg="#111111")
+            lbl_row.pack(anchor="w")
+            tk.Label(lbl_row, text=label, fg="#DDDDDD", bg="#111111", font=("Segoe UI", 10)).pack(side="left")
+            if required:
+                tk.Label(lbl_row, text=" *", fg="#E05A5A", bg="#111111", font=("Segoe UI", 10)).pack(side="left")
             cb = ttk.Combobox(row, textvariable=var, values=values, state="readonly")
             cb.pack(fill="x", ipady=3)
             return cb
@@ -13066,13 +13203,14 @@ class ProjectIntakeWindow(tk.Toplevel):
             activeforeground="#DDDDDD",
         ).pack(anchor="w")
 
-        add_entry(left, "Project Name", self.vars["project_name"])
-        add_entry(left, "Owner/Lead", self.vars["project_owner"])
+        add_entry(left, "Project Name", self.vars["project_name"], required=True)
+        add_entry(left, "Owner/Lead", self.vars["project_owner"], required=True)
         add_combo(
             left,
             "Status",
             self.vars["project_status"],
             ["ideation", "planned", "active", "blocked", "done", "archived"],
+            required=True,
         )
 
         add_combo(
@@ -13080,14 +13218,16 @@ class ProjectIntakeWindow(tk.Toplevel):
             "Priority",
             self.vars["project_priority"],
             ["low", "medium", "high", "critical"],
+            required=True,
         )
-        add_entry(right, "Start Date (YYYY-MM-DD)", self.vars["start_date"])
-        add_entry(right, "Target Completion Date (YYYY-MM-DD)", self.vars["end_date"])
+        add_entry(right, "Start Date (YYYY-MM-DD)", self.vars["start_date"], required=True)
+        add_entry(right, "Target Completion Date (YYYY-MM-DD)", self.vars["end_date"], required=True)
         add_entry(right, "Tags (comma-separated)", self.vars["tags"])
 
-        tk.Label(content, text="Summary / Objective", fg="#DDDDDD", bg="#111111", font=("Segoe UI", 10)).pack(
-            anchor="w", padx=16, pady=(8, 0)
-        )
+        sum_lbl = tk.Frame(content, bg="#111111")
+        sum_lbl.pack(anchor="w", padx=16, pady=(8, 0))
+        tk.Label(sum_lbl, text="Summary / Objective", fg="#DDDDDD", bg="#111111", font=("Segoe UI", 10)).pack(side="left")
+        tk.Label(sum_lbl, text=" *", fg="#E05A5A", bg="#111111", font=("Segoe UI", 10)).pack(side="left")
         self.summary_entry = tk.Entry(
             content,
             textvariable=self.summary_var,
@@ -13102,25 +13242,12 @@ class ProjectIntakeWindow(tk.Toplevel):
         bar.pack(side="bottom", fill="x", padx=16, pady=(6, 14))
 
         self.open_note_var = tk.BooleanVar(value=True)
-        if self.vault_root is not None:
-            tk.Checkbutton(
-                bar,
-                text="Open created note automatically",
-                variable=self.open_note_var,
-                bg="#111111",
-                fg="#DDDDDD",
-                selectcolor="#111111",
-                activebackground="#111111",
-                activeforeground="#DDDDDD",
-            ).pack(side="left")
 
         def btn(t, cmd):
             return tk.Button(bar, text=t, command=cmd, bg="#2A2A2A", fg="#FFFFFF", relief="flat", padx=14, pady=8)
 
         btn("Cancel", self.destroy).pack(side="right", padx=(8, 0))
         btn("Save & Continue", self._save_continue).pack(side="right")
-        btn("Clear Draft", self._clear_draft).pack(side="right", padx=(8, 0))
-        btn("Save Draft", self._save_draft).pack(side="right", padx=(8, 0))
 
     def _apply_draft(self, draft: dict):
         if not draft:
@@ -13219,6 +13346,10 @@ class ProjectIntakeWindow(tk.Toplevel):
                 note_path = create_obsidian_project_note(self.vault_root, data)
             except Exception as e:
                 messagebox.showerror("Project Intake", f"Failed to create note:\n\n{e}", parent=self)
+                try:
+                    _log_shift_entry_from_launcher(self.master, self.vault_root, "project", data, None)
+                except Exception:
+                    pass
                 return
 
         if note_path:
@@ -13238,8 +13369,11 @@ class ProjectIntakeWindow(tk.Toplevel):
             except Exception:
                 pass
 
-        if note_path:
-            _log_shift_entry_from_launcher(self.master, self.vault_root, "project", data, note_path)
+        if self.vault_root is not None:
+            try:
+                _log_shift_entry_from_launcher(self.master, self.vault_root, "project", data, note_path)
+            except Exception:
+                pass
 
         messagebox.showinfo("Project Intake", "Saved.", parent=self)
         self.destroy()
@@ -13420,9 +13554,12 @@ class PlaybookIntakeWindow(tk.Toplevel):
         if self.vault_root is not None:
             try:
                 note_path = create_obsidian_playbook_note(self.vault_root, data)
-                _log_shift_entry_from_launcher(self.master, self.vault_root, "playbook", data, note_path)
             except Exception as e:
                 messagebox.showwarning("Playbook Intake", f"Saved draft, but failed to create playbook note:\n{e}", parent=self)
+            try:
+                _log_shift_entry_from_launcher(self.master, self.vault_root, "playbook", data, note_path)
+            except Exception:
+                pass
 
         if note_path is not None and self.open_note_var.get():
             try:
@@ -13589,9 +13726,10 @@ def create_obsidian_procedure_note(vault_root: Path, proc: dict) -> Path:
     created = (proc.get("created") or "").strip() or now
     proc["created"] = created
 
+    year = datetime.now().strftime("%Y")
     name_bits = []
     if procedure_id:
-        name_bits.append(procedure_id)
+        name_bits.append(f"PRC-{year}-{procedure_id}")
     name_bits.append(title)
     slug = _safe_slug(" - ".join(name_bits))
     note_path = base_folder / f"{slug}.md"
@@ -13747,7 +13885,7 @@ class ProcedureIntakeWindow(tk.Toplevel):
             cb.pack(fill="x", ipady=3)
             return cb
 
-        add_entry(left, "Procedure ID", self.vars["procedure_id"])
+        add_entry(left, "Procedure ID (#### format, numerals only)", self.vars["procedure_id"])
         add_entry(left, "Procedure Title", self.vars["title"])
 
         add_labeled_combo(left, "Status", self.vars["status"], ["draft", "active", "deprecated"])
@@ -13803,6 +13941,14 @@ class ProcedureIntakeWindow(tk.Toplevel):
         if not data.get("title"):
             messagebox.showwarning("Procedure Intake", "Procedure Title is required.", parent=self)
             return
+        proc_id = (data.get("procedure_id") or "").strip()
+        if proc_id and not re.match(r"^\d{4}$", proc_id):
+            messagebox.showwarning(
+                "Procedure Intake",
+                "Procedure ID must be 4 numerals only (#### format).",
+                parent=self,
+            )
+            return
 
         save_procedure_draft(self.app_dir, data)
 
@@ -13810,9 +13956,12 @@ class ProcedureIntakeWindow(tk.Toplevel):
         if self.vault_root is not None:
             try:
                 note_path = create_obsidian_procedure_note(self.vault_root, data)
-                _log_shift_entry_from_launcher(self.master, self.vault_root, "procedure", data, note_path)
             except Exception as e:
                 messagebox.showwarning("Procedure Intake", f"Saved draft, but failed to create procedure note:\n{e}", parent=self)
+            try:
+                _log_shift_entry_from_launcher(self.master, self.vault_root, "procedure", data, note_path)
+            except Exception:
+                pass
 
         if note_path is not None and self.open_note_var.get():
             try:
@@ -14130,54 +14279,56 @@ class ITIDIntakeWindow(tk.Toplevel):
             "updated": tk.StringVar(),
         }
 
-        def add_entry(parent, label, var):
+        def add_entry(parent, label, var, required=False):
             row = tk.Frame(parent, bg="#111111")
             row.pack(fill="x", pady=6)
-            tk.Label(row, text=label, fg="#DDDDDD", bg="#111111", font=("Segoe UI", 10)).pack(anchor="w")
+            lbl_row = tk.Frame(row, bg="#111111")
+            lbl_row.pack(anchor="w")
+            tk.Label(lbl_row, text=label, fg="#DDDDDD", bg="#111111", font=("Segoe UI", 10)).pack(side="left")
+            if required:
+                tk.Label(lbl_row, text=" *", fg="#E05A5A", bg="#111111", font=("Segoe UI", 10)).pack(side="left")
             ent = tk.Entry(row, textvariable=var, bg="#1B1B1B", fg="#FFFFFF",
                            insertbackground="#FFFFFF", relief="flat")
             ent.pack(fill="x", ipady=6)
             return ent
 
-        def add_combo(parent, label, var, values):
+        def add_combo(parent, label, var, values, required=False):
             row = tk.Frame(parent, bg="#111111")
             row.pack(fill="x", pady=6)
-            tk.Label(row, text=label, fg="#DDDDDD", bg="#111111", font=("Segoe UI", 10)).pack(anchor="w")
+            lbl_row = tk.Frame(row, bg="#111111")
+            lbl_row.pack(anchor="w")
+            tk.Label(lbl_row, text=label, fg="#DDDDDD", bg="#111111", font=("Segoe UI", 10)).pack(side="left")
+            if required:
+                tk.Label(lbl_row, text=" *", fg="#E05A5A", bg="#111111", font=("Segoe UI", 10)).pack(side="left")
             cb = ttk.Combobox(row, textvariable=var, values=values, state="readonly")
             cb.pack(fill="x", ipady=3)
             return cb
 
-        add_entry(left, "ITID ID (numerals only)", self.vars["itid_id"])
-        add_entry(left, "ITID Title", self.vars["itid_name"])
+        add_entry(left, "ITID ID (5 digits, numerals only)", self.vars["itid_id"], required=True)
+        add_entry(left, "ITID Title", self.vars["itid_name"], required=True)
         add_combo(left, "Default Severity", self.vars["severity_guidance"], ["Low", "Medium", "High", "Critical"])
         add_entry(right, "Owner", self.vars["owner"])
         add_entry(right, "Tags", self.vars["tags"])
         add_entry(right, "Date Created", self.vars["created"])
         add_entry(right, "Date Updated", self.vars["updated"])
 
-        tk.Label(content, text="ITID Definition", fg="#DDDDDD", bg="#111111", font=("Segoe UI", 10)).pack(anchor="w", padx=16, pady=(12, 0))
+        def_lbl = tk.Frame(content, bg="#111111")
+        def_lbl.pack(anchor="w", padx=16, pady=(12, 0))
+        tk.Label(def_lbl, text="Brief Description", fg="#DDDDDD", bg="#111111", font=("Segoe UI", 10)).pack(side="left")
+        tk.Label(def_lbl, text=" *", fg="#E05A5A", bg="#111111", font=("Segoe UI", 10)).pack(side="left")
         self.definition_txt = tk.Text(content, height=8, bg="#1B1B1B", fg="#FFFFFF", insertbackground="#FFFFFF", relief="flat", wrap="word")
         self.definition_txt.pack(fill="x", padx=16, pady=(4, 10))
 
         bar = tk.Frame(self, bg="#111111")
         bar.pack(side="bottom", fill="x", padx=16, pady=(6, 14))
 
-        self.open_note_var = tk.BooleanVar(value=True)
-        if self.vault_root is not None:
-            tk.Checkbutton(
-                bar, text="Open created note automatically",
-                variable=self.open_note_var,
-                bg="#111111", fg="#DDDDDD", selectcolor="#111111",
-                activebackground="#111111", activeforeground="#DDDDDD",
-            ).pack(side="left")
+        self.open_note_var = tk.BooleanVar(value=True)  # Hidden; always True
 
         def btn(t, cmd):
             return tk.Button(bar, text=t, command=cmd, bg="#2A2A2A", fg="#FFFFFF", relief="flat", padx=14, pady=8)
 
         btn("Cancel", self.destroy).pack(side="right", padx=(8, 0))
         btn("Save & Continue", self._save_continue).pack(side="right")
-        btn("Clear Draft", self._clear_draft).pack(side="right", padx=(8, 0))
-        btn("Save Draft", self._save_draft).pack(side="right", padx=(8, 0))
 
     def _apply_draft(self, draft: dict):
         if not draft:
@@ -14210,8 +14361,16 @@ class ITIDIntakeWindow(tk.Toplevel):
         if not data.get("itid_id") and not data.get("itid_name"):
             messagebox.showwarning("ITID Intake", "Provide at least ITID ID or ITID Title.", parent=self)
             return
-        if data.get("itid_id") and not ITID_ID_RE.match(data.get("itid_id", "")):
-            messagebox.showwarning("ITID Intake", "ITID ID must be a 5 digit number.", parent=self)
+        itid_id_raw = (data.get("itid_id") or "").strip()
+        if itid_id_raw and not ITID_ID_RE.match(itid_id_raw):
+            messagebox.showwarning(
+                "ITID Intake",
+                "ITID ID must be exactly 5 digits (numerals only).",
+                parent=self,
+            )
+            return
+        if not (data.get("definition") or "").strip():
+            messagebox.showwarning("ITID Intake", "Brief Description is required.", parent=self)
             return
 
         # stamp updated now regardless
@@ -14225,9 +14384,12 @@ class ITIDIntakeWindow(tk.Toplevel):
         if self.vault_root is not None:
             try:
                 note_path = create_obsidian_itid_note(self.vault_root, data)
-                _log_shift_entry_from_launcher(self.master, self.vault_root, "itid", data, note_path)
             except Exception as e:
                 messagebox.showwarning("ITID Intake", f"Saved draft, but failed to create ITID note:\n{e}", parent=self)
+            try:
+                _log_shift_entry_from_launcher(self.master, self.vault_root, "itid", data, note_path)
+            except Exception:
+                pass
 
         if note_path is not None and self.open_note_var.get():
             try:
@@ -14430,6 +14592,9 @@ updated: "{updated}"
     note_path.write_text(md, encoding="utf-8")
     return note_path
 
+HOWTO_ID_RE = re.compile(r"^(?:HOW-)?(\d{5})$", re.IGNORECASE)
+
+
 def _format_howto_id(value: str) -> str:
     raw = (value or "").strip()
     if not raw:
@@ -14482,6 +14647,9 @@ def create_obsidian_howto_note(vault_root: Path, howto: dict) -> Path:
             "updated": updated,
         }
         md = _apply_yaml_updates(tpl_text, yaml_updates)
+        for k, v in [("how_to_id", how_to_id), ("title", title)]:
+            md = md.replace(f"{{{{{k}}}}}", v)
+            md = md.replace(f"{{{{{k.upper()}}}}}", v)
     else:
         tags_block = "\n".join([f"  - {t}" for t in tags_list]) if tags_list else ""
         md = f"""---
@@ -14520,18 +14688,17 @@ MITRE_ACTOR_ID_RE = re.compile(r"^\d{4}$")
 INTERNAL_ACTOR_ID_RE = re.compile(r"^(?:TA-)?\d{4}$", re.IGNORECASE)
 
 
-def _format_threat_actor_id(value: str, *, internal_untracked: bool) -> str:
+def _format_threat_actor_id(value: str, *, internal_tracked: bool) -> str:
+    """Format actor ID: internal tracked -> TA-####, otherwise -> G####."""
     raw = (value or "").strip()
     if not raw:
         return ""
-    if internal_untracked:
-        if INTERNAL_ACTOR_ID_RE.match(raw):
-            digits = raw[3:] if raw.upper().startswith("TA-") else raw
-            return f"TA-{digits}"
-        return raw
-    if MITRE_ACTOR_ID_RE.match(raw):
-        return f"G{raw}"
-    return raw
+    digits = raw[4:] if raw.upper().startswith("TA-") else (raw[1:] if raw.upper().startswith("G") and len(raw) > 1 and raw[1:].isdigit() else raw)
+    if not (digits.isdigit() and len(digits) == 4):
+        digits = raw
+    if internal_tracked:
+        return f"TA-{digits}"
+    return f"G{digits}"
 
 
 def _resolve_threat_actor_template(vault_root: Path) -> Path | None:
@@ -14596,9 +14763,49 @@ def create_obsidian_threat_actor_note(vault_root: Path, actor: dict) -> Path:
         "updated": updated,
     }
 
+    def _fmt_list(val, bullets=False):
+        if isinstance(val, (list, tuple)):
+            items = [str(x).strip() for x in val if str(x).strip()]
+            if bullets:
+                return "\n".join(f"- {x}" for x in items) if items else "- (none recorded)"
+            return ", ".join(items) if items else "(none recorded)"
+        return str(val).strip() if val else "(none recorded)"
+
     if tpl_path and tpl_path.exists():
         tpl_text = _read_text_safe(tpl_path)
         md = _apply_yaml_updates(tpl_text, updates)
+        token_map = {
+            "actor_id": actor_id or "(not specified)",
+            "actor_name": actor_name or "Threat Actor",
+            "common_name": common_name,
+            "actor_type": actor_type,
+            "first_seen": first_seen,
+            "last_seen": last_seen,
+            "first_identified": first_seen or (actor.get("first_identified") or "").strip() or "(not specified)",
+            "active_period": last_seen or (actor.get("active_period") or "").strip() or "(not specified)",
+            "status": status,
+            "attribution_confidence": attribution_confidence or "(not specified)",
+            "nation_state": (actor.get("nation_state") or "").strip() or "(not specified)",
+            "sponsor_type": _fmt_list(actor.get("sponsor_type")),
+            "motivation": _fmt_list(actor.get("motivation")),
+            "aliases": _fmt_list(actor.get("aliases")),
+            "target_sectors": _fmt_list(actor.get("target_sectors"), bullets=True),
+            "target_regions": _fmt_list(actor.get("target_regions"), bullets=True),
+            "target_technologies": _fmt_list(actor.get("target_technologies"), bullets=True),
+            "ttp_profile": _fmt_list(actor.get("ttp_profile"), bullets=True),
+            "malware_used": _fmt_list(actor.get("malware_used"), bullets=True),
+            "tools_used": _fmt_list(actor.get("tools_used"), bullets=True),
+            "infrastructure_profile": _fmt_list(actor.get("infrastructure_profile"), bullets=True),
+            "associated_campaigns": _fmt_list(actor.get("associated_campaigns"), bullets=True),
+            "related_incidents": _fmt_list(actor.get("related_incidents"), bullets=True),
+            "intel_sources": _fmt_list(actor.get("intel_sources"), bullets=True),
+            "risk_level": (actor.get("risk_level") or "").strip() or "(not specified)",
+            "threat_score": str(actor.get("threat_score", 1)),
+            "tlp_classification": (actor.get("tlp_classification") or "").strip() or "(not specified)",
+        }
+        for k, v in token_map.items():
+            md = md.replace(f"{{{{{k}}}}}", v)
+            md = md.replace(f"{{{{{k.upper()}}}}}", v)
     else:
         md = f"""---
 entity_type: threat_actor
@@ -14765,6 +14972,9 @@ def _resolve_sla_template(vault_root: Path) -> Path | None:
     return None
 
 
+SLA_ID_RE = re.compile(r"^(?:SLA-)?(\d{5})$", re.IGNORECASE)
+
+
 def _format_sla_id(value: str) -> str:
     raw = (value or "").strip()
     if not raw:
@@ -14827,6 +15037,12 @@ def _merge_sla_frontmatter(template_text: str, sla: dict) -> str:
     updated = now  # always stamp updated at save time
 
     sla_id = _format_sla_id(_get("sla_id"))
+    eff_date = _get("sla_effective_date")
+    exp_date = _get("sla_expiration_date")
+    if eff_date and " " in eff_date:
+        eff_date = eff_date.split()[0]
+    if exp_date and " " in exp_date:
+        exp_date = exp_date.split()[0]
     updates = {
         "entity_type": "\"sla\"",
         "sla_id": f"\"{sla_id}\"",
@@ -14837,6 +15053,9 @@ def _merge_sla_frontmatter(template_text: str, sla: dict) -> str:
         "sla_owning_team": f"\"{_get('sla_owning_team')}\"",
         "sla_provider_contact": f"\"{_get('sla_provider_contact')}\"",
         "sla_customer_contact": f"\"{_get('sla_customer_contact')}\"",
+        "sla_effective_date": f"\"{eff_date}\"",
+        "sla_expiration_date": f"\"{exp_date}\"",
+        "sla_service_description": f"\"{_get('sla_service_description').replace(chr(10), ' ').replace('\"', chr(39))}\"",
         "tags": f"\"{_get('tags')}\"",
         "tlp_classification": f"\"{_get('tlp_classification')}\"",
         "created": f"\"{created}\"",
@@ -14903,6 +15122,9 @@ def create_obsidian_sla_note(vault_root: Path, sla: dict) -> Path:
         "sla_owning_team": _get("sla_owning_team"),
         "sla_provider_contact": _get("sla_provider_contact"),
         "sla_customer_contact": _get("sla_customer_contact"),
+        "sla_effective_date": _get("sla_effective_date").split()[0] if _get("sla_effective_date") else "",
+        "sla_expiration_date": _get("sla_expiration_date").split()[0] if _get("sla_expiration_date") else "",
+        "sla_service_description": _get("sla_service_description"),
         "tags": _get("tags"),
         "tlp_classification": _get("tlp_classification"),
         "created": created,
@@ -15567,18 +15789,26 @@ class GoalIntakeWindow(tk.Toplevel):
         form = tk.Frame(self, bg="#111111")
         form.pack(fill="both", expand=True, padx=10, pady=(0, 10))
 
-        def add_entry(parent, label, var):
+        def add_entry(parent, label, var, required=False):
             row = tk.Frame(parent, bg="#111111")
             row.pack(fill="x", pady=6)
-            tk.Label(row, text=label, fg="#DDDDDD", bg="#111111", font=("Segoe UI", 10), wraplength=380, justify="left").pack(anchor="w", fill="x")
+            lbl_row = tk.Frame(row, bg="#111111")
+            lbl_row.pack(anchor="w")
+            tk.Label(lbl_row, text=label, fg="#DDDDDD", bg="#111111", font=("Segoe UI", 10), wraplength=380, justify="left").pack(side="left")
+            if required:
+                tk.Label(lbl_row, text=" *", fg="#E05A5A", bg="#111111", font=("Segoe UI", 10)).pack(side="left")
             ent = tk.Entry(row, textvariable=var, bg="#1B1B1B", fg="#FFFFFF", insertbackground="#FFFFFF", relief="flat")
             ent.pack(fill="x", ipady=6)
             return ent
 
-        def add_combo(parent, label, var, values):
+        def add_combo(parent, label, var, values, required=False):
             row = tk.Frame(parent, bg="#111111")
             row.pack(fill="x", pady=6)
-            tk.Label(row, text=label, fg="#DDDDDD", bg="#111111", font=("Segoe UI", 10), wraplength=380, justify="left").pack(anchor="w", fill="x")
+            lbl_row = tk.Frame(row, bg="#111111")
+            lbl_row.pack(anchor="w")
+            tk.Label(lbl_row, text=label, fg="#DDDDDD", bg="#111111", font=("Segoe UI", 10), wraplength=380, justify="left").pack(side="left")
+            if required:
+                tk.Label(lbl_row, text=" *", fg="#E05A5A", bg="#111111", font=("Segoe UI", 10)).pack(side="left")
             cb = ttk.Combobox(row, textvariable=var, values=values, state="readonly")
             cb.pack(fill="x", ipady=3)
             return cb
@@ -15595,7 +15825,7 @@ class GoalIntakeWindow(tk.Toplevel):
         right.pack(side="left", fill="both", expand=True, padx=(10, 0))
 
         add_entry(left, "Goal ID (auto if blank)", self.vars["goal_id"])
-        add_entry(left, "Goal Title", self.vars["title"])
+        add_entry(left, "Goal Title", self.vars["title"], required=True)
         add_entry(left, "Owner", self.vars["owner"])
         add_entry(left, "Area", self.vars["area"])
         add_entry(left, "Start Date (YYYY-MM-DD)", self.vars["start_date"])
@@ -15607,18 +15837,7 @@ class GoalIntakeWindow(tk.Toplevel):
         add_entry(right, "Related Tasks (comma or line separated)", self.vars["related_tasks"])
         add_entry(right, "Tags (comma or line separated)", self.vars["tags"])
 
-        opts = tk.Frame(form, bg="#111111")
-        opts.pack(fill="x", padx=20, pady=(8, 0))
-        tk.Checkbutton(
-            opts,
-            text="Open note in Obsidian after save",
-            variable=self.vars["open_after_save"],
-            bg="#111111",
-            fg="#DDDDDD",
-            selectcolor="#111111",
-            activebackground="#111111",
-            activeforeground="#DDDDDD",
-        ).pack(anchor="w")
+        # open_after_save stays True (hidden)
 
         bar = tk.Frame(self, bg="#0D0D0D")
         bar.pack(fill="x", side="bottom")
@@ -15629,8 +15848,6 @@ class GoalIntakeWindow(tk.Toplevel):
             bg = "#2A2A2A" if not primary else "#3A3A3A"
             return tk.Button(inner, text=txt_, command=cmd, bg=bg, fg="#FFFFFF", relief="flat", padx=14, pady=8)
 
-        btn("Save Draft", self._save_draft).pack(side="left")
-        btn("Clear Draft", self._clear_draft).pack(side="left", padx=(8, 0))
         btn("Cancel", self.destroy).pack(side="right")
         btn("Save & Continue", self._save_continue, primary=True).pack(side="right", padx=(0, 8))
 
@@ -15711,6 +15928,22 @@ class GoalIntakeWindow(tk.Toplevel):
             messagebox.showerror("Goal Intake", "Goal Title is required.", parent=self)
             return
 
+        start_raw = (data.get("start_date") or "").strip()
+        end_raw = (data.get("end_date") or "").strip()
+        if start_raw and end_raw:
+            try:
+                start_d = datetime.strptime(start_raw, "%Y-%m-%d").date()
+                end_d = datetime.strptime(end_raw, "%Y-%m-%d").date()
+                if end_d <= start_d:
+                    messagebox.showwarning(
+                        "Goal Intake",
+                        "End Date must be greater than Start Date.",
+                        parent=self,
+                    )
+                    return
+            except ValueError:
+                pass
+
         try:
             if callable(self.on_submit):
                 self.on_submit(data)
@@ -15755,10 +15988,8 @@ class HowToIntakeWindow(tk.Toplevel):
         self._load_draft()
 
         now = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-        if not self.vars["created"].get().strip():
-            self.vars["created"].set(now)
-        if not self.vars["updated"].get().strip():
-            self.vars["updated"].set(now)
+        self.vars["created"].set(now)
+        self.vars["updated"].set(now)
 
     def _build_widgets(self):
         cfg = self.cfg or {}
@@ -15805,24 +16036,32 @@ class HowToIntakeWindow(tk.Toplevel):
         left.pack(side="left", fill="both", expand=True, padx=(0, 10))
         right.pack(side="right", fill="both", expand=True, padx=(10, 0))
 
-        def add_entry(parent, label, var):
+        def add_entry(parent, label, var, required=False):
             row = tk.Frame(parent, bg="#111111")
             row.pack(fill="x", pady=7)
-            tk.Label(row, text=label, fg="#DDDDDD", bg="#111111", font=("Segoe UI", 10), wraplength=760, justify="left").pack(anchor="w", fill="x")
+            lbl_row = tk.Frame(row, bg="#111111")
+            lbl_row.pack(anchor="w")
+            tk.Label(lbl_row, text=label, fg="#DDDDDD", bg="#111111", font=("Segoe UI", 10), wraplength=760, justify="left").pack(side="left")
+            if required:
+                tk.Label(lbl_row, text=" *", fg="#E05A5A", bg="#111111", font=("Segoe UI", 10)).pack(side="left")
             ent = tk.Entry(row, textvariable=var, bg="#1B1B1B", fg="#FFFFFF", insertbackground="#FFFFFF", relief="flat")
             ent.pack(fill="x", ipady=7)
             return ent
 
-        def add_combo(parent, label, var, values):
+        def add_combo(parent, label, var, values, required=False):
             row = tk.Frame(parent, bg="#111111")
             row.pack(fill="x", pady=7)
-            tk.Label(row, text=label, fg="#DDDDDD", bg="#111111", font=("Segoe UI", 10), wraplength=760, justify="left").pack(anchor="w", fill="x")
+            lbl_row = tk.Frame(row, bg="#111111")
+            lbl_row.pack(anchor="w")
+            tk.Label(lbl_row, text=label, fg="#DDDDDD", bg="#111111", font=("Segoe UI", 10), wraplength=760, justify="left").pack(side="left")
+            if required:
+                tk.Label(lbl_row, text=" *", fg="#E05A5A", bg="#111111", font=("Segoe UI", 10)).pack(side="left")
             cb = ttk.Combobox(row, textvariable=var, values=values, state="readonly")
             cb.pack(fill="x", ipady=4)
             return cb
 
-        add_entry(left, "How-to ID (numerals only)", self.vars["how_to_id"])
-        add_entry(left, "Title", self.vars["title"])
+        add_entry(left, "How-to ID (5 digits, numerals only)", self.vars["how_to_id"], required=True)
+        add_entry(left, "Title", self.vars["title"], required=True)
         add_combo(left, "Status", self.vars["status"], ["Draft", "Published", "Deprecated"])
         add_combo(left, "TLP Classification", self.vars["tlp_classification"], ["TLP:CLEAR", "TLP:GREEN", "TLP:AMBER", "TLP:AMBER+STRICT", "TLP:RED"])
         add_entry(left, "Tags", self.vars["tags"])
@@ -15834,26 +16073,16 @@ class HowToIntakeWindow(tk.Toplevel):
         bar = tk.Frame(self, bg="#111111")
         bar.pack(side="bottom", fill="x", padx=16, pady=(6, 14))
 
-        tk.Checkbutton(
-            bar,
-            text="Open note in Obsidian after save",
-            variable=self.vars["open_after_save"],
-            bg="#111111",
-            fg="#DDDDDD",
-            selectcolor="#111111",
-            activebackground="#111111",
-            activeforeground="#DDDDDD",
-        ).pack(side="left")
+        # open_after_save stays True (hidden)
 
         def btn(t, cmd):
             return tk.Button(bar, text=t, command=cmd, bg="#2A2A2A", fg="#FFFFFF", relief="flat", padx=14, pady=8)
 
         btn("Cancel", self.destroy).pack(side="right", padx=(8, 0))
         btn("Save & Continue", self._submit).pack(side="right")
-        btn("Clear Draft", self._clear_draft).pack(side="right", padx=(8, 0))
-        btn("Save Draft", self._save_draft).pack(side="right", padx=(8, 0))
 
     def _collect(self) -> dict:
+        now = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         return {
             "how_to_id": (self.vars["how_to_id"].get() or "").strip(),
             "title": (self.vars["title"].get() or "").strip(),
@@ -15861,8 +16090,8 @@ class HowToIntakeWindow(tk.Toplevel):
             "status": (self.vars["status"].get() or "").strip(),
             "tlp_classification": (self.vars["tlp_classification"].get() or "").strip(),
             "tags": (self.vars["tags"].get() or "").strip(),
-            "created": (self.vars["created"].get() or "").strip(),
-            "updated": (self.vars["updated"].get() or "").strip(),
+            "created": now,
+            "updated": now,
             "open_after_save": bool(self.vars["open_after_save"].get()),
         }
 
@@ -15902,7 +16131,7 @@ class HowToIntakeWindow(tk.Toplevel):
             if self.draft_path.exists():
                 data = json.loads(self.draft_path.read_text(encoding="utf-8"))
                 if isinstance(data, dict):
-                    for k in ["how_to_id", "title", "status", "tlp_classification", "tags", "owner", "created", "updated"]:
+                    for k in ["status", "tlp_classification", "tags", "owner", "created", "updated"]:
                         if k in self.vars and k in data:
                             try:
                                 self.vars[k].set(data.get(k, ""))
@@ -15919,6 +16148,17 @@ class HowToIntakeWindow(tk.Toplevel):
         data = self._collect()
         if not data.get("title"):
             messagebox.showerror("How-To Intake", "Title is required.", parent=self)
+            return
+        howto_id_raw = (data.get("how_to_id") or "").strip()
+        if not howto_id_raw:
+            messagebox.showwarning("How-To Intake", "How-to ID is required.", parent=self)
+            return
+        if not HOWTO_ID_RE.match(howto_id_raw):
+            messagebox.showwarning(
+                "How-To Intake",
+                "How-to ID must be exactly 5 digits (numerals only).",
+                parent=self,
+            )
             return
         self._save_draft()
         try:
@@ -15950,7 +16190,7 @@ class ThreatActorIntakeWindow(tk.Toplevel):
             "last_seen": tk.StringVar(),
             "status": tk.StringVar(value="Unknown"),
             "attribution_confidence": tk.StringVar(value="low"),
-            "internal_untracked": tk.BooleanVar(value=False),
+            "internal_tracked": tk.BooleanVar(value=True),
             "open_after_save": tk.BooleanVar(value=True),
         }
 
@@ -15996,27 +16236,35 @@ class ThreatActorIntakeWindow(tk.Toplevel):
         left.pack(side="left", fill="both", expand=True, padx=(0, 10))
         right.pack(side="right", fill="both", expand=True, padx=(10, 0))
 
-        def add_entry(parent, label, var):
+        def add_entry(parent, label, var, required=False):
             row = tk.Frame(parent, bg="#111111")
             row.pack(fill="x", pady=6)
-            tk.Label(row, text=label, fg="#DDDDDD", bg="#111111", font=("Segoe UI", 10)).pack(anchor="w")
+            lbl_row = tk.Frame(row, bg="#111111")
+            lbl_row.pack(anchor="w")
+            tk.Label(lbl_row, text=label, fg="#DDDDDD", bg="#111111", font=("Segoe UI", 10)).pack(side="left")
+            if required:
+                tk.Label(lbl_row, text=" *", fg="#E05A5A", bg="#111111", font=("Segoe UI", 10)).pack(side="left")
             ent = tk.Entry(row, textvariable=var, bg="#1B1B1B", fg="#FFFFFF", insertbackground="#FFFFFF", relief="flat")
             ent.pack(fill="x", ipady=6)
             return ent
 
-        def add_combo(parent, label, var, values):
+        def add_combo(parent, label, var, values, required=False):
             row = tk.Frame(parent, bg="#111111")
             row.pack(fill="x", pady=6)
-            tk.Label(row, text=label, fg="#DDDDDD", bg="#111111", font=("Segoe UI", 10)).pack(anchor="w")
+            lbl_row = tk.Frame(row, bg="#111111")
+            lbl_row.pack(anchor="w")
+            tk.Label(lbl_row, text=label, fg="#DDDDDD", bg="#111111", font=("Segoe UI", 10)).pack(side="left")
+            if required:
+                tk.Label(lbl_row, text=" *", fg="#E05A5A", bg="#111111", font=("Segoe UI", 10)).pack(side="left")
             cb = ttk.Combobox(row, textvariable=var, values=values, state="readonly")
             cb.pack(fill="x", ipady=3)
             return cb
 
-        add_entry(left, "Actor ID (numerals only ####)", self.vars["actor_id"])
+        add_entry(left, "Actor ID (4 digits, numerals only)", self.vars["actor_id"], required=True)
         tk.Checkbutton(
             left,
-            text="Internal, untracked actor",
-            variable=self.vars["internal_untracked"],
+            text="Internal, tracked actor",
+            variable=self.vars["internal_tracked"],
             bg="#111111",
             fg="#DDDDDD",
             selectcolor="#111111",
@@ -16024,7 +16272,7 @@ class ThreatActorIntakeWindow(tk.Toplevel):
             activeforeground="#DDDDDD",
         ).pack(anchor="w", pady=(0, 6))
 
-        add_entry(left, "Actor Name", self.vars["actor_name"])
+        add_entry(left, "Actor Name", self.vars["actor_name"], required=True)
         add_entry(left, "Common Name", self.vars["common_name"])
         add_combo(left, "Actor Type", self.vars["actor_type"], ["Unknown", "Nation/State", "State-Sponsored", "Cybercrime", "Hacktivist"])
 
@@ -16036,24 +16284,13 @@ class ThreatActorIntakeWindow(tk.Toplevel):
         bar = tk.Frame(self, bg="#111111")
         bar.pack(side="bottom", fill="x", padx=16, pady=(6, 14))
 
-        tk.Checkbutton(
-            bar,
-            text="Open created note automatically",
-            variable=self.vars["open_after_save"],
-            bg="#111111",
-            fg="#DDDDDD",
-            selectcolor="#111111",
-            activebackground="#111111",
-            activeforeground="#DDDDDD",
-        ).pack(side="left")
+        # open_after_save stays True (hidden)
 
         def btn(t, cmd):
             return tk.Button(bar, text=t, command=cmd, bg="#2A2A2A", fg="#FFFFFF", relief="flat", padx=14, pady=8)
 
         btn("Cancel", self.destroy).pack(side="right", padx=(8, 0))
         btn("Save & Continue", self._save_continue).pack(side="right")
-        btn("Clear Draft", self._clear_draft).pack(side="right", padx=(8, 0))
-        btn("Save Draft", self._save_draft).pack(side="right", padx=(8, 0))
 
     def _collect(self) -> dict:
         return {
@@ -16065,15 +16302,15 @@ class ThreatActorIntakeWindow(tk.Toplevel):
             "last_seen": (self.vars["last_seen"].get() or "").strip(),
             "status": (self.vars["status"].get() or "").strip(),
             "attribution_confidence": (self.vars["attribution_confidence"].get() or "").strip(),
-            "internal_untracked": bool(self.vars["internal_untracked"].get()),
+            "internal_untracked": not bool(self.vars["internal_tracked"].get()),
             "open_after_save": bool(self.vars["open_after_save"].get()),
         }
 
     def _validate(self, data: dict) -> tuple[bool, str]:
         actor_id = data.get("actor_id", "")
-        internal = bool(data.get("internal_untracked"))
+        internal_tracked = not bool(data.get("internal_untracked"))
         if actor_id:
-            if internal:
+            if internal_tracked:
                 if not INTERNAL_ACTOR_ID_RE.match(actor_id):
                     return False, "Internal actor IDs must be TA-#### or ####."
             else:
@@ -16100,6 +16337,7 @@ class ThreatActorIntakeWindow(tk.Toplevel):
                     v.set(False)
                 else:
                     v.set("")
+            self.vars["internal_tracked"].set(True)
             self.vars["open_after_save"].set(True)
         except Exception:
             pass
@@ -16110,7 +16348,9 @@ class ThreatActorIntakeWindow(tk.Toplevel):
                 data = json.loads(self.draft_path.read_text(encoding="utf-8"))
                 if isinstance(data, dict):
                     for k, val in data.items():
-                        if k in self.vars:
+                        if k == "internal_untracked":
+                            self.vars["internal_tracked"].set(not bool(val))
+                        elif k in self.vars:
                             self.vars[k].set(val)
         except Exception:
             pass
@@ -16124,7 +16364,7 @@ class ThreatActorIntakeWindow(tk.Toplevel):
 
         data["actor_id"] = _format_threat_actor_id(
             data.get("actor_id", ""),
-            internal_untracked=bool(data.get("internal_untracked")),
+            internal_tracked=not bool(data.get("internal_untracked")),
         )
         data["updated"] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         if not data.get("created"):
@@ -17008,41 +17248,126 @@ class SLAIntakeWindow(tk.Toplevel):
             "sla_owning_team": tk.StringVar(),
             "sla_provider_contact": tk.StringVar(),
             "sla_customer_contact": tk.StringVar(),
+            "sla_effective_date": tk.StringVar(),
+            "sla_expiration_date": tk.StringVar(),
             "tags": tk.StringVar(),
             "tlp_classification": tk.StringVar(value="TLP:CLEAR"),
             "created": tk.StringVar(),
             "updated": tk.StringVar(),
         }
 
-        def add_entry(parent, label, var):
+        self._date_pickers = {}
+
+        def add_date_picker(parent, label: str, key: str, var: tk.StringVar):
+            """Date-only picker; stores as YYYY-MM-DD 00:00:00."""
             row = tk.Frame(parent, bg="#111111")
             row.pack(fill="x", pady=6)
             tk.Label(row, text=label, fg="#DDDDDD", bg="#111111", font=("Segoe UI", 10)).pack(anchor="w")
+            picker_row = tk.Frame(row, bg="#111111")
+            picker_row.pack(fill="x")
+            value = (var.get() or "").strip()
+            d, _, _, _ = _parse_datetime_for_picker(value if value else "")
+            date_entry = None
+            fallback_entry = None
+            if DateEntry is not None:
+                try:
+                    style = ttk.Style(self)
+                    style.configure(
+                        "SLA.DateEntry",
+                        fieldbackground="#1B1B1B",
+                        background="#2A2A2A",
+                        foreground="#FFFFFF",
+                        arrowcolor="#FFFFFF",
+                    )
+                    date_entry = DateEntry(
+                        picker_row, date_pattern="y-mm-dd", year=d.year, month=d.month, day=d.day,
+                        style="SLA.DateEntry",
+                    )
+                except Exception:
+                    date_entry = DateEntry(
+                        picker_row, date_pattern="y-mm-dd", year=d.year, month=d.month, day=d.day,
+                    )
+                date_entry.pack(side="left", padx=(0, 8))
+            else:
+                fallback_entry = tk.Entry(picker_row, bg="#1B1B1B", fg="#FFFFFF", relief="flat", width=12)
+                fallback_entry.insert(0, d.isoformat())
+                fallback_entry.pack(side="left", padx=(0, 8))
+            self._date_pickers[key] = {"date_entry": date_entry, "fallback_entry": fallback_entry}
+            return date_entry, fallback_entry
+
+        def _sync_expiration_from_effective():
+            """Set Expiration date to Effective date + 1 year."""
+            eff_p = self._date_pickers.get("sla_effective_date")
+            exp_p = self._date_pickers.get("sla_expiration_date")
+            if not eff_p or not exp_p:
+                return
+            try:
+                if eff_p["date_entry"] is not None:
+                    d = eff_p["date_entry"].get_date()
+                elif eff_p.get("fallback_entry"):
+                    raw = eff_p["fallback_entry"].get().strip()
+                    if not raw:
+                        return
+                    d = datetime.strptime(raw, "%Y-%m-%d").date()
+                else:
+                    return
+                exp_d = d + timedelta(days=365)
+                if exp_p["date_entry"] is not None:
+                    exp_p["date_entry"].set_date(exp_d)
+                elif exp_p.get("fallback_entry"):
+                    exp_p["fallback_entry"].delete(0, "end")
+                    exp_p["fallback_entry"].insert(0, exp_d.isoformat())
+            except (ValueError, TypeError):
+                pass
+
+        def add_entry(parent, label, var, required=False):
+            row = tk.Frame(parent, bg="#111111")
+            row.pack(fill="x", pady=6)
+            lbl_row = tk.Frame(row, bg="#111111")
+            lbl_row.pack(anchor="w")
+            tk.Label(lbl_row, text=label, fg="#DDDDDD", bg="#111111", font=("Segoe UI", 10)).pack(side="left")
+            if required:
+                tk.Label(lbl_row, text=" *", fg="#E05A5A", bg="#111111", font=("Segoe UI", 10)).pack(side="left")
             ent = tk.Entry(row, textvariable=var, bg="#1B1B1B", fg="#FFFFFF",
                            insertbackground="#FFFFFF", relief="flat")
             ent.pack(fill="x", ipady=6)
             return ent
 
-        def add_combo(parent, label, var, values):
+        def add_combo(parent, label, var, values, required=False):
             row = tk.Frame(parent, bg="#111111")
             row.pack(fill="x", pady=6)
-            tk.Label(row, text=label, fg="#DDDDDD", bg="#111111", font=("Segoe UI", 10)).pack(anchor="w")
+            lbl_row = tk.Frame(row, bg="#111111")
+            lbl_row.pack(anchor="w")
+            tk.Label(lbl_row, text=label, fg="#DDDDDD", bg="#111111", font=("Segoe UI", 10)).pack(side="left")
+            if required:
+                tk.Label(lbl_row, text=" *", fg="#E05A5A", bg="#111111", font=("Segoe UI", 10)).pack(side="left")
             cb = ttk.Combobox(row, textvariable=var, values=values, state="readonly")
             cb.pack(fill="x", ipady=3)
             return cb
 
-        def add_labeled_combo(parent, label, var, values):
+        def add_labeled_combo(parent, label, var, values, required=False):
             row = tk.Frame(parent, bg="#111111")
             row.pack(fill="x", pady=6)
-            tk.Label(row, text=label, fg="#DDDDDD", bg="#111111", font=("Segoe UI", 10)).pack(anchor="w")
+            lbl_row = tk.Frame(row, bg="#111111")
+            lbl_row.pack(anchor="w")
+            tk.Label(lbl_row, text=label, fg="#DDDDDD", bg="#111111", font=("Segoe UI", 10)).pack(side="left")
+            if required:
+                tk.Label(lbl_row, text=" *", fg="#E05A5A", bg="#111111", font=("Segoe UI", 10)).pack(side="left")
             cb = ttk.Combobox(row, textvariable=var, values=values, state="readonly")
             cb.pack(fill="x", ipady=3)
             return cb
 
-        add_entry(left, "SLA ID (numerals only)", self.vars["sla_id"])
-        add_entry(left, "SLA Title", self.vars["sla_title"])
+        add_entry(left, "SLA ID (5 digits, numerals only)", self.vars["sla_id"])
+        add_entry(left, "SLA Title", self.vars["sla_title"], required=True)
         add_combo(left, "Status", self.vars["sla_status"], ["Draft", "Active", "Suspended", "Retired"])
         add_combo(left, "SLA Type", self.vars["sla_type"], ["Internal", "Customer", "Vendor", "Regulatory", "Other"])
+        eff_de, eff_fb = add_date_picker(left, "Effective Date", "sla_effective_date", self.vars["sla_effective_date"])
+        add_date_picker(right, "Expiration Date", "sla_expiration_date", self.vars["sla_expiration_date"])
+        _sync_expiration_from_effective()
+        if eff_de is not None:
+            eff_de.bind("<<DateEntrySelected>>", lambda e: _sync_expiration_from_effective())
+        elif eff_fb is not None:
+            eff_fb.bind("<FocusOut>", lambda e: _sync_expiration_from_effective())
         add_entry(right, "SLA Owner", self.vars["sla_owner_primary"])
         add_entry(right, "Team Ownership", self.vars["sla_owning_team"])
         add_entry(right, "SLA Contact Name", self.vars["sla_provider_contact"])
@@ -17052,25 +17377,48 @@ class SLAIntakeWindow(tk.Toplevel):
         add_entry(right, "Created Date", self.vars["created"])
         add_entry(right, "Updated Date", self.vars["updated"])
 
+        tk.Label(content, text="Description", fg="#DDDDDD", bg="#111111", font=("Segoe UI", 10)).pack(anchor="w", padx=16, pady=(12, 0))
+        self.service_description_txt = tk.Text(content, height=8, bg="#1B1B1B", fg="#FFFFFF", insertbackground="#FFFFFF", relief="flat", wrap="word")
+        self.service_description_txt.pack(fill="x", padx=16, pady=(4, 10))
+
         bar = tk.Frame(self, bg="#111111")
         bar.pack(side="bottom", fill="x", padx=16, pady=(6, 14))
 
-        self.open_note_var = tk.BooleanVar(value=True)
-        if self.vault_root is not None:
-            tk.Checkbutton(
-                bar, text="Open created note automatically",
-                variable=self.open_note_var,
-                bg="#111111", fg="#DDDDDD", selectcolor="#111111",
-                activebackground="#111111", activeforeground="#DDDDDD",
-            ).pack(side="left")
+        self.open_note_var = tk.BooleanVar(value=True)  # Hidden; always True
 
         def btn(t, cmd):
             return tk.Button(bar, text=t, command=cmd, bg="#2A2A2A", fg="#FFFFFF", relief="flat", padx=14, pady=8)
 
         btn("Cancel", self.destroy).pack(side="right", padx=(8, 0))
         btn("Save & Continue", self._save_continue).pack(side="right")
-        btn("Clear Draft", self._clear_draft).pack(side="right", padx=(8, 0))
-        btn("Save Draft", self._save_draft).pack(side="right", padx=(8, 0))
+
+    def _get_date_picker_value(self, key: str) -> str:
+        """Get date from picker as YYYY-MM-DD 00:00:00."""
+        p = self._date_pickers.get(key)
+        if not p:
+            return self.vars.get(key, tk.StringVar()).get().strip()
+        try:
+            if p["date_entry"] is not None:
+                d = p["date_entry"].get_date()
+            elif p.get("fallback_entry"):
+                d = datetime.strptime(p["fallback_entry"].get().strip(), "%Y-%m-%d").date()
+            else:
+                return self.vars.get(key, tk.StringVar()).get().strip()
+            return f"{d.isoformat()} 00:00:00"
+        except (ValueError, TypeError):
+            return self.vars.get(key, tk.StringVar()).get().strip()
+
+    def _set_date_picker_value(self, key: str, value: str) -> None:
+        p = self._date_pickers.get(key)
+        if not p:
+            self.vars[key].set(value)
+            return
+        d, _, _, _ = _parse_datetime_for_picker(value)
+        if p["date_entry"] is not None:
+            p["date_entry"].set_date(d)
+        elif p.get("fallback_entry"):
+            p["fallback_entry"].delete(0, "end")
+            p["fallback_entry"].insert(0, d.isoformat())
 
     def _apply_draft(self, draft: dict):
         if not draft:
@@ -17078,9 +17426,19 @@ class SLAIntakeWindow(tk.Toplevel):
         for k, v in draft.items():
             if k in self.vars and isinstance(v, str):
                 self.vars[k].set(v)
+        for key in ("sla_effective_date", "sla_expiration_date"):
+            if key in draft and key in self._date_pickers:
+                self._set_date_picker_value(key, str(draft[key]))
+        if "sla_service_description" in draft:
+            self.service_description_txt.delete("1.0", "end")
+            self.service_description_txt.insert("1.0", draft.get("sla_service_description", ""))
 
     def _collect(self) -> dict:
         data = {k: v.get().strip() for k, v in self.vars.items()}
+        for key in ("sla_effective_date", "sla_expiration_date"):
+            if key in self._date_pickers:
+                data[key] = self._get_date_picker_value(key)
+        data["sla_service_description"] = self.service_description_txt.get("1.0", "end").strip()
         return data
 
     def _save_draft(self):
@@ -17094,6 +17452,10 @@ class SLAIntakeWindow(tk.Toplevel):
         now = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         self.vars["created"].set(now)
         self.vars["updated"].set(now)
+        self.service_description_txt.delete("1.0", "end")
+        for key in ("sla_effective_date", "sla_expiration_date"):
+            if key in self._date_pickers:
+                self._set_date_picker_value(key, "")
         messagebox.showinfo("SLA Intake", "Draft cleared.", parent=self)
 
     def _save_continue(self):
@@ -17101,6 +17463,30 @@ class SLAIntakeWindow(tk.Toplevel):
         if not data.get("sla_title"):
             messagebox.showwarning("SLA Intake", "SLA Title is required.", parent=self)
             return
+        sla_id_raw = (data.get("sla_id") or "").strip()
+        if sla_id_raw and not SLA_ID_RE.match(sla_id_raw):
+            messagebox.showwarning(
+                "SLA Intake",
+                "SLA ID must be exactly 5 digits (numerals only).",
+                parent=self,
+            )
+            return
+
+        eff = (data.get("sla_effective_date") or "").strip().split()[0] if (data.get("sla_effective_date") or "").strip() else ""
+        exp = (data.get("sla_expiration_date") or "").strip().split()[0] if (data.get("sla_expiration_date") or "").strip() else ""
+        if eff and exp:
+            try:
+                eff_d = datetime.strptime(eff, "%Y-%m-%d").date()
+                exp_d = datetime.strptime(exp, "%Y-%m-%d").date()
+                if eff_d >= exp_d:
+                    messagebox.showwarning(
+                        "SLA Intake",
+                        "Effective Date must be earlier than Expiration Date.",
+                        parent=self,
+                    )
+                    return
+            except ValueError:
+                pass
 
         # Normalize timestamps
         now = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
@@ -17116,9 +17502,12 @@ class SLAIntakeWindow(tk.Toplevel):
         if self.vault_root is not None:
             try:
                 note_path = create_obsidian_sla_note(self.vault_root, data)
-                _log_shift_entry_from_launcher(self.master, self.vault_root, "sla", data, note_path)
             except Exception as e:
                 messagebox.showwarning("SLA Intake", f"Saved draft, but failed to create SLA note:\n{e}", parent=self)
+            try:
+                _log_shift_entry_from_launcher(self.master, self.vault_root, "sla", data, note_path)
+            except Exception:
+                pass
 
         if note_path is not None and self.open_note_var.get():
             try:

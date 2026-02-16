@@ -1,9 +1,9 @@
 {
   "playbook_id": "00002",
-  "title": "Test",
+  "title": "Test Playbook after Meeting",
   "status": "draft",
-  "owner_primary": "",
+  "owner_primary": "YOUR NAME",
   "tags": "",
-  "itid_primary": "ITID-11111 - User Reported Phishing Message — ITID-11111 — User Reported Phishing Message",
-  "purpose": "Test"
+  "itid_primary": "",
+  "purpose": ""
 }
